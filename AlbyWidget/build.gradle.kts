@@ -8,6 +8,7 @@ plugins {
 android {
     namespace = "com.alby.widget"
     compileSdk = 34
+    version = findProperty("VERSION_NAME") as String
 
     defaultConfig {
         minSdk = 29
