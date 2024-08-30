@@ -2,9 +2,9 @@ name: Build & Release
 
 on:
   push:
-    branches: [ main ]
-#  pull_request:
-#    branches: [ master ]
+    # Pattern matched against refs/tags
+    tags:
+      - '*'
 
 jobs:
   Build:
