@@ -13,14 +13,17 @@ import androidx.compose.ui.viewinterop.AndroidView
 
 @SuppressLint("SetJavaScriptEnabled", "JavascriptInterface")
 @Composable
-fun WebViewScreen(javascriptInterface: Any, webViewReference: MutableState<WebView?>) {
+fun WebViewScreen(
+    javascriptInterface: Any,
+    webViewReference: MutableState<WebView?>,
+    brandId: String,
+    productId: String,
+    variantId: String? = null
+) {
     AndroidView(
         factory = { context ->
             WebView(context).apply {
-                layoutParams = ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-                )
+
                 settings.javaScriptEnabled = true
                 webViewClient = WebViewClient()
 
@@ -30,19 +33,29 @@ fun WebViewScreen(javascriptInterface: Any, webViewReference: MutableState<WebVi
                 settings.domStorageEnabled = true;
                 addJavascriptInterface(javascriptInterface, "appInterface")
                 webViewReference.value = this;
-
             }
         },
         update = { webView ->
-            webView.loadUrl("https://cdn.alby.com/assets/alby_widget.html")
+            var widgetUrl = "https://cdn.alby.com/assets/alby_widget.html?brandId=${brandId}&productId=${productId}"
+            if (variantId != null) {
+                widgetUrl += "&variantId=${variantId}"
+            }
+
+            webView.loadUrl(widgetUrl)
             webView.setBackgroundColor(Color.White.toArgb())
         }
     )
 }
 
 fun publishEvent(webView: WebView?, event: String) {
+    val escapedEvent = event
+        .replace("\\", "\\\\") // Escape backslashes
+        .replace("\"", "\\\"") // Escape double quotes
+        .replace("\n", "\\n")
+
     val js =
-        "var event = new CustomEvent('iosEvent', { detail: { data: '${event}'}}); window.dispatchEvent(event);"
+        "var event = new CustomEvent('iosEvent', { detail: { data: '${escapedEvent}'}}); window.dispatchEvent(event);"
+    Log.d("message", js);
     webView?.evaluateJavascript(js) {
         Log.d("widget", it);
     }

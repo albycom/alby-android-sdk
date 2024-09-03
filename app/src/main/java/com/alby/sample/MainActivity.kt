@@ -23,8 +23,10 @@ class MainActivity : ComponentActivity() {
         setContent {
             AlbyWidgetTheme {
                 Scaffold(containerColor = Color.LightGray, modifier = Modifier.fillMaxSize()) { innerPadding ->
-
-                    AlbyWidgetScreen {
+                    AlbyWidgetScreen(
+                        brandId = "7a54fcd4-db3a-4a32-9b44-17f047fbc41d",
+                        productId = "A140344"
+                    ) {
                         Greeting(
                             name = "Android",
                             modifier = Modifier.padding(innerPadding)
@@ -39,14 +41,4 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun Greeting(name: String, modifier: Modifier = Modifier) {
     Text(text = name, modifier = modifier)
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    AlbyWidgetTheme {
-        AlbyWidgetScreen {
-            Greeting("Android")
-        }
-    }
 }
