@@ -37,7 +37,7 @@ fun HideableBottomSheetScaffold(
     modifier: Modifier = Modifier,
     sheetShape: Shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
     sheetBackgroundColor: Color = Color.White,
-    content: @Composable ColumnScope.() -> Unit
+    content: @Composable () -> Unit
 ) {
 
     var layoutHeight by remember { mutableIntStateOf(0) }
@@ -55,7 +55,7 @@ fun HideableBottomSheetScaffold(
                 }
             }
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier.fillMaxSize()) {
             content()
         }
         Box(

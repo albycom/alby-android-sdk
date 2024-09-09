@@ -55,7 +55,6 @@ fun publishEvent(webView: WebView?, event: String) {
 
     val js =
         "var event = new CustomEvent('iosEvent', { detail: { data: '${escapedEvent}'}}); window.dispatchEvent(event);"
-    Log.d("message", js);
     webView?.evaluateJavascript(js) {
         Log.d("widget", it);
     }

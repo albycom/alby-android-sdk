@@ -1,7 +1,9 @@
 package com.alby.widget
 
 import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.animation.core.DecayAnimationSpec
 import androidx.compose.animation.core.SpringSpec
+import androidx.compose.animation.core.exponentialDecay
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.AnchoredDraggableState
 import androidx.compose.foundation.gestures.DraggableAnchors
@@ -32,6 +34,7 @@ enum class HideableBottomSheetValue {
 
 object HideableBottomSheetDefaults {
     val AnimationSpec = SpringSpec<Float>()
+    val DecayAnimationSpec:  DecayAnimationSpec<Float> = exponentialDecay()
 
     val PositionalThreshold = { distance: Float -> distance * 0.2f }
 
@@ -43,11 +46,13 @@ object HideableBottomSheetDefaults {
 class HideableBottomSheetState(
     initialValue: HideableBottomSheetValue,
     private val animationSpec: AnimationSpec<Float> = HideableBottomSheetDefaults.AnimationSpec,
+    private val decayAnimationSpec: DecayAnimationSpec<Float> = HideableBottomSheetDefaults.DecayAnimationSpec,
     private val confirmValueChange: (HideableBottomSheetValue) -> Boolean = { true }
 ) {
     val draggableState = AnchoredDraggableState(
         initialValue = initialValue,
-        animationSpec = animationSpec,
+        snapAnimationSpec = animationSpec,
+        decayAnimationSpec = decayAnimationSpec,
         positionalThreshold = HideableBottomSheetDefaults.PositionalThreshold,
         velocityThreshold = HideableBottomSheetDefaults.VelocityThreshold,
         confirmValueChange = confirmValueChange
@@ -133,9 +138,8 @@ class HideableBottomSheetState(
     fun requireOffset() = draggableState.requireOffset()
 
     private suspend fun animateTo(
-        targetValue: HideableBottomSheetValue,
-        velocity: Float = draggableState.lastVelocity
-    ) = draggableState.animateTo(targetValue, velocity)
+        targetValue: HideableBottomSheetValue
+    ) = draggableState.animateTo(targetValue)
 
     companion object {
         /**

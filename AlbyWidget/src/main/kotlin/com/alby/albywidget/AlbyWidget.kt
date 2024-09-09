@@ -55,7 +55,6 @@ class AlbyWidgetWebViewInterface(
                 }
 
                 "widget-rendered" -> {
-                    Log.d("widget", "Widget rendered")
                     bottomSheetState.show()
                 }
             }
