@@ -80,6 +80,9 @@ class MainActivity : ComponentActivity() {
                 } else scrollState.disableScrolling(this)
             }
 
+//            SharedImage(viewModel)
+
+
             DestinationsNavHost(
                 navGraph = NavGraphs.root,
                 navController = rememberNavController(),
@@ -95,7 +98,7 @@ class MainActivity : ComponentActivity() {
                 }
 
                 composable(DetailScreenDestination) {
-                    AlbyWidgetScreen(brandId = "7a54fcd4-db3a-4a32-9b44-17f047fbc41d", productId ="A06410" ) {
+                    AlbyWidgetScreen(brandId = "017d2e91-58ee-41e4-a3c9-9cee17624b31", productId ="100037" ) {
                         DetailScreen(
                             navigator = destinationsNavigator,
                             viewModel = viewModel,
@@ -107,7 +110,6 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            SharedImage(viewModel)
 
             /*Box(
                 modifier = Modifier

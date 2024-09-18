@@ -1,8 +1,12 @@
 package com.alby.widget
 
 import android.annotation.SuppressLint
+import android.content.Intent
+import android.net.Uri
 import android.util.Log
+import android.view.MotionEvent
 import android.view.ViewGroup
+import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.runtime.Composable
@@ -23,16 +27,25 @@ fun WebViewScreen(
     AndroidView(
         factory = { context ->
             WebView(context).apply {
-
                 settings.javaScriptEnabled = true
-                webViewClient = WebViewClient()
+                webViewClient = object : WebViewClient() {
+                    override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest): Boolean {
+                        // Open the URL in an external browser
+                        url?.let {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(it))
+                            context.startActivity(intent)
+                        }
+                        return true
+                    }
+                }
 
                 settings.loadWithOverviewMode = false
                 settings.useWideViewPort = true
                 settings.setSupportZoom(false)
-                settings.domStorageEnabled = true;
+                settings.domStorageEnabled = true
                 addJavascriptInterface(javascriptInterface, "appInterface")
-                webViewReference.value = this;
+                webViewReference.value = this
+
             }
         },
         update = { webView ->
@@ -54,7 +67,8 @@ fun publishEvent(webView: WebView?, event: String) {
         .replace("\n", "\\n")
 
     val js =
-        "var event = new CustomEvent('iosEvent', { detail: { data: '${escapedEvent}'}}); window.dispatchEvent(event);"
+        "var event = new CustomEvent('albyNativeEvent', { detail: { data: '${escapedEvent}'}}); window.dispatchEvent(event);"
+    Log.d("event", js);
     webView?.evaluateJavascript(js) {
         Log.d("widget", it);
     }

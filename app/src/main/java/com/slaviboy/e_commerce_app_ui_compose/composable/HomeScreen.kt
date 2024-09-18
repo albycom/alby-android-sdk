@@ -23,6 +23,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.slaviboy.e_commerce_app_ui_compose.Item
@@ -203,7 +204,6 @@ fun Item(item: Item, viewModel: ViewModel, onClickListener: (layoutCoordinates: 
                 .background(item.backgroundColor, RoundedCornerShape(0.05.dw))
 
         ) {
-
             Image(
                 painterResource(id = item.imageResId),
                 contentDescription = null,
@@ -212,7 +212,8 @@ fun Item(item: Item, viewModel: ViewModel, onClickListener: (layoutCoordinates: 
                     .fillMaxWidth()
                     .onGloballyPositioned { coordinates ->
                         layoutCoordinates = coordinates
-                    },
+                    }
+                    .zIndex(0.1f),
                 alpha = if (item == viewModel.invisibleClickedImage.value) viewModel.itemImageOpacity.value else 1f
             )
         }

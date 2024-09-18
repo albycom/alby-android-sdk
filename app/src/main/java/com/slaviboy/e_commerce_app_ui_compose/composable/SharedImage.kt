@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.zIndex
 import com.slaviboy.e_commerce_app_ui_compose.util.StaticMethods
 import com.slaviboy.e_commerce_app_ui_compose.util.StaticMethods.NAVIGATION_TRANSITION_DELAY
 import com.slaviboy.e_commerce_app_ui_compose.util.StaticMethods.NAVIGATION_TRANSITION_DURATION
@@ -121,7 +122,8 @@ fun SharedImage(viewModel: ViewModel) {
         modifier = Modifier
             .absoluteOffset { IntOffset(left.toInt(), top.toInt()) }
             .width(with(LocalDensity.current) { width.toDp() })
-            .height(with(LocalDensity.current) { width.toDp() }),
+            .height(with(LocalDensity.current) { width.toDp() })
+            .zIndex(0.1f),
         alpha = viewModel.sharedImageOpacity.value
     )
 
