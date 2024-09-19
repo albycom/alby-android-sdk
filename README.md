@@ -26,7 +26,11 @@ implementation 'com.alby.widget:alby-widget:0.0.15'
 ```
 
 ## Setup and Configuration
-This SDK only works with Jetpack Compose.
+This SDK only works with Jetpack Compose. First of all, make sure that you have internet permission enabled for your app inside your `AndroidManifest.xml`
+
+```xml
+<uses-permission android:name="android.permission.INTERNET" />
+```
 
 1. Make sure you have an Alby account - if you don't, go to https://alby.com and create one.
 2. Get your brand id
@@ -38,24 +42,59 @@ AlbyWidgetScreen(brandId = "your-brand-id", productId ="your-product-id" ) {
 }
 ```
 
-The default placement will be in the bottom of the screen. If you have a bottom bar or something similar, make sure you add a bottom
-offset. In the example below we are moving the alby bottom sheet 50 points upwards.
+The default placement will be in the bottom of the screen. If you have a bottom bar or something similar, make sure you add place the
+bottom sheet around your tab and that you pass the padding for the bottom bar to the widget so it stays on top of the bottom bar.
 
-```
-AlbyWidgetScreen(brandId = "your-brand-id", productId ="your-product-id", bottomOffset = 20 ) {
- YourScreenGoesHere()
-}
-```
-
-### Example
 ```kotlin
-AlbyWidgetScreen(brandId = "your-brand-id", productId ="your-product-id" ) {
-    DetailScreen(
-        navigator = destinationsNavigator,
-        viewModel = viewModel,
-        onHideSystemUI = {
-            hideSystemBars()
+class MainActivity : ComponentActivity() {
+    @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
+    @OptIn(ExperimentalMaterial3Api::class)
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent {
+            // setting up the individual tabs
+            val homeTab = TabBarItem(title = "Home", selectedIcon = Icons.Filled.Home, unselectedIcon = Icons.Outlined.Home)
+            val alertsTab = TabBarItem(title = "Alerts", selectedIcon = Icons.Filled.Notifications, unselectedIcon = Icons.Outlined.Notifications, badgeAmount = 7)
+            val settingsTab = TabBarItem(title = "Settings", selectedIcon = Icons.Filled.Settings, unselectedIcon = Icons.Outlined.Settings)
+            val moreTab = TabBarItem(title = "More", selectedIcon = Icons.Filled.List, unselectedIcon = Icons.Outlined.List)
+
+            // creating a list of all the tabs
+            val tabBarItems = listOf(homeTab, alertsTab, settingsTab, moreTab)
+
+            // creating our navController
+            val navController = rememberNavController()
+
+            AlbyWidgetTheme {
+                // A surface container using the 'background' color from the theme
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    Scaffold(bottomBar = { TabView(tabBarItems, navController) })  {
+                        innerPadding ->
+                        val bottomPadding = innerPadding.calculateBottomPadding() + 10.dp
+
+                        NavHost(navController = navController, startDestination = homeTab.title) {
+                            composable(homeTab.title) {
+                                AlbyWidgetScreen(brandId = "your brand id", productId = "your product id", bottomOffset = bottomPadding) {
+                                    Text(homeTab.title)
+                                }
+
+                            }
+                            composable(alertsTab.title) {
+                                Text(alertsTab.title)
+                            }
+                            composable(settingsTab.title) {
+                                Text(settingsTab.title)
+                            }
+                            composable(moreTab.title) {
+                                MoreView()
+                            }
+                        }
+                    }
+                }
+            }
         }
-    )
+    }
 }
 ```

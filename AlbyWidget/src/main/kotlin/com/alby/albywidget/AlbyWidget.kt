@@ -27,7 +27,6 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.ArrowCircleRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,16 +35,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.compose.material.icons.filled.ArrowCircleUp
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DragHandle
-import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.runtime.LaunchedEffect
@@ -54,6 +52,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalFocusManager
@@ -110,6 +112,7 @@ fun AlbyWidgetScreen(
     brandId: String,
     productId: String,
     variantId: String? = null,
+    bottomOffset: Dp? = null,
     content: @Composable () -> Unit
 ) {
     val bottomSheetState =
@@ -123,8 +126,9 @@ fun AlbyWidgetScreen(
     val jsInterface =
         AlbyWidgetWebViewInterface(coroutineScope, bottomSheetState, isLoading, isLoadingText)
 
+    val finalBottomOffset: Dp = bottomOffset ?: 0.dp;
+
     LaunchedEffect(bottomSheetState.targetValue) {
-        Log.d("state", bottomSheetState.targetValue.toString())
         if (bottomSheetState.targetValue == HideableBottomSheetValue.HalfExpanded || bottomSheetState.targetValue == HideableBottomSheetValue.Expanded) {
             publishEvent(webViewReference.value, "sheet-expanded")
         } else {
@@ -141,18 +145,22 @@ fun AlbyWidgetScreen(
                 jsInterface,
                 brandId,
                 productId,
-                variantId
+                variantId,
+                finalBottomOffset
             )
         },
         bottomSheetStickyItem = {
             BottomSheetInputText(
                 webViewReference,
+                bottomSheetState,
                 isLoading,
                 isLoadingText
             )
         },
         sheetBackgroundColor = Color.White,
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(bottom = finalBottomOffset)
     ) {
         content()
     }
@@ -165,15 +173,19 @@ fun BottomSheet(
     webViewInterface: AlbyWidgetWebViewInterface,
     brandId: String,
     productId: String,
-    variantId: String? = null
+    variantId: String? = null,
+    bottomOffset: Dp
 ) {
     val configuration = LocalConfiguration.current
     val heightDP = configuration.screenHeightDp
+    val coroutineScope = rememberCoroutineScope()
+
 
 
     Column(
         modifier = Modifier
-            .fillMaxSize(),
+            .fillMaxSize()
+            .padding(bottom = bottomOffset),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(
@@ -185,7 +197,7 @@ fun BottomSheet(
                 tint = Color(121, 116, 126, 255),
             )
         }
-        if(state.isExpanded || state.isHalfExpanded) {
+        if (state.isExpanded || state.isHalfExpanded) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -199,7 +211,9 @@ fun BottomSheet(
                 ) {
                     Text("Powered by", color = Color(147, 157, 175, 255), fontSize = 11.sp)
                     Box(
-                        modifier = Modifier.height(13.dp).padding(start = 4.dp)
+                        modifier = Modifier
+                            .height(13.dp)
+                            .padding(start = 4.dp)
                     ) {
                         Image(
                             painter = painterResource(id = R.drawable.alby_logo),
@@ -209,7 +223,11 @@ fun BottomSheet(
                         )
                     }
                 }
-                IconButton(onClick = {}) {
+                IconButton(onClick = {
+                    coroutineScope.launch {
+                        state.hide()
+                    }
+                }) {
                     Icon(
                         Icons.Filled.Close,
                         contentDescription = "Close alby widget",
@@ -227,7 +245,7 @@ fun BottomSheet(
                 .fillMaxWidth(),
             contentAlignment = Alignment.TopStart
         ) {
-            LazyColumn(userScrollEnabled = true) {
+            LazyColumn {
                 item {
                     WebViewScreen(webViewInterface, webViewReference, brandId, productId, variantId)
                 }
@@ -238,12 +256,14 @@ fun BottomSheet(
 }
 
 fun calculateHeight(state: HideableBottomSheetState, screenHeight: Int): Dp {
+    Log.d("height", state.currentValue.toString())
+    Log.d("height", screenHeight.toString())
     if (state.isHidden) {
         return 0.dp
     }
 
     if (state.isHalfExpanded) {
-        return (HideableBottomSheetValue.HalfExpanded.draggableSpaceFraction * screenHeight - 100).dp
+        return (HideableBottomSheetValue.HalfExpanded.draggableSpaceFraction * screenHeight - 200).dp
     }
 
     if (state.isExpanded) {
@@ -256,6 +276,7 @@ fun calculateHeight(state: HideableBottomSheetState, screenHeight: Int): Dp {
 @Composable
 fun BottomSheetInputText(
     webViewReference: MutableState<WebView?>,
+    bottomSheetState: HideableBottomSheetState,
     isLoading: MutableState<Boolean>,
     isLoadingText: MutableState<String>
 ) {
@@ -277,6 +298,8 @@ fun BottomSheetInputText(
     } else {
         0.dp
     }
+    val coroutineScope = rememberCoroutineScope()
+
 
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
         BasicTextField(
@@ -284,7 +307,14 @@ fun BottomSheetInputText(
             onValueChange = { newText -> text = newText },
             modifier = Modifier
                 .weight(1f)
-                .focusable(),
+                .focusable()
+                .onFocusChanged {
+                    if (it.isFocused) {
+                        coroutineScope.launch {
+                            bottomSheetState.expand()
+                        }
+                    }
+                },
             textStyle = TextStyle(fontSize = 14.sp, color = Color(17, 25, 40, 255)),
             singleLine = true,
             enabled = !isLoading.value,

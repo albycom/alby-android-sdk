@@ -1,5 +1,5 @@
 [versions]
-agp = "8.4.0"
+agp = "8.6.1"
 animationsCore = "1.3.3-beta"
 coreVersion = "1.10.2"
 kotlin = "2.0.20"
@@ -11,6 +11,7 @@ appcompat = "1.7.0"
 material3 = "1.3.0"
 constraintlayout = "2.1.4"
 materialIconsExtended = "1.7.1"
+navigationCompose = "2.7.5"
 navigationFragmentKtx = "2.8.0"
 navigationUiKtx = "2.8.0"
 lifecycleRuntimeKtx = "2.8.5"
@@ -24,6 +25,7 @@ composeUi = "1.7.1"
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-material-icons-extended = { module = "androidx.compose.material:material-icons-extended", version.ref = "materialIconsExtended" }
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationFragmentKtx" }
+androidx-navigation-compose-v275 = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 androidx-ui-tooling = { module = "androidx.compose.ui:ui-tooling", version.ref = "uiToolingPreview" }
 androidx-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview", version.ref = "uiToolingPreview" }
 animations-core = { module = "io.github.raamcosta.compose-destinations:animations-core", version.ref = "coreVersion" }
@@ -51,3 +53,4 @@ android-application = { id = "com.android.application", version.ref = "agp" }
 jetbrains-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlin-parcelize = { id = "org.jetbrains.kotlin.plugin.parcelize", version.ref = "kotlin" }

@@ -22,3 +22,4 @@ dependencyResolutionManagement {
 rootProject.name = "AlbyWidget"
 include(":app")
 include(":AlbyWidget")
+include(":sample")

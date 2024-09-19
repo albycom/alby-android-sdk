@@ -4,8 +4,6 @@ import android.annotation.SuppressLint
 import android.content.Intent
 import android.net.Uri
 import android.util.Log
-import android.view.MotionEvent
-import android.view.ViewGroup
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -38,7 +36,8 @@ fun WebViewScreen(
                         return true
                     }
                 }
-
+                isFocusable = false
+                isFocusableInTouchMode = false
                 settings.loadWithOverviewMode = false
                 settings.useWideViewPort = true
                 settings.setSupportZoom(false)
