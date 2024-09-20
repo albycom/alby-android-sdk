@@ -26,7 +26,7 @@ enum class HideableBottomSheetValue {
     val draggableSpaceFraction: Float
         get() = when (this) {
             Hidden -> -1f
-            Initial -> 0.12f
+            Initial -> 0.09f
             HalfExpanded -> 0.6f
             Expanded -> 1f
         }
