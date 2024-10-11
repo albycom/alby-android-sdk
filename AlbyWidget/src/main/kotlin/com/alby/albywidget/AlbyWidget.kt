@@ -162,6 +162,15 @@ fun AlbyWidgetScreen(
     }
 }
 
+/**
+ * A Composable function that displays the alby Inline Widget within the app.
+ *
+ * @param modifier Allows external components to apply styling, such as padding or alignment,
+ * to the widget. Defaults to an empty [Modifier].
+ * @param brandId A unique identifier for the brand to be displayed in the widget.
+ * @param productId A unique identifier for the product associated with the widget.
+ * @param variantId An optional parameter representing a specific product variant to be displayed.
+ */
 @Composable
 fun AlbyInlineWidget(
     modifier: Modifier = Modifier,
