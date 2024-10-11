@@ -20,7 +20,8 @@ fun WebViewScreen(
     webViewReference: MutableState<WebView?>,
     brandId: String,
     productId: String,
-    variantId: String? = null
+    variantId: String? = null,
+    component: String? = "alby-mobile-generative-qa"
 ) {
     AndroidView(
         factory = { context ->
@@ -35,6 +36,17 @@ fun WebViewScreen(
                         }
                         return true
                     }
+                    override fun onPageFinished(view: WebView?, url: String?) {
+                        // Inject JavaScript to remove padding and margin from the body and html elements
+                        this@apply.loadUrl(
+                            "javascript:(function() { " +
+                                    "document.body.style.margin='0'; " +
+                                    "document.body.style.padding='0'; " +
+                                    "document.documentElement.style.margin='0'; " +
+                                    "document.documentElement.style.padding='0'; " +
+                                    "})()"
+                        )
+                    }
                 }
                 isFocusable = false
                 isFocusableInTouchMode = false
@@ -44,17 +56,15 @@ fun WebViewScreen(
                 settings.domStorageEnabled = true
                 addJavascriptInterface(javascriptInterface, "appInterface")
                 webViewReference.value = this
-
             }
         },
         update = { webView ->
-            var widgetUrl = "https://cdn.alby.com/assets/alby_widget.html?brandId=${brandId}&productId=${productId}"
+            var widgetUrl = "https://cdn.alby.com/assets/alby_widget.html?brandId=${brandId}&productId=${productId}&component=${component}"
             if (variantId != null) {
                 widgetUrl += "&variantId=${variantId}"
             }
 
             webView.loadUrl(widgetUrl)
-            webView.setBackgroundColor(Color.White.toArgb())
         }
     )
 }
