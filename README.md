@@ -110,7 +110,7 @@ class MainActivity : ComponentActivity() {
 ```
 
 ### AlbyInlineWidget
-The `AlbyInlineWidgetView` is a component that allows embedding the Alby widget directly into your app's UI. It’s perfect for inline use on any page, like product details or brand-specific screens, where the widget integrates seamlessly within the existing view hierarchy.
+The `AlbyInlineWidget` is a component that allows embedding the Alby widget directly into your app's UI. It’s perfect for inline use on any page, like product details or brand-specific screens, where the widget integrates seamlessly within the existing view hierarchy.
 
 1. Import the alby widget `import com.alby.widget.AlbyInlineWidget`
 2. In the Composable function where you want to place the widget, add the `AlbyInlineWidget` component and pass in the required `brandId` and `productId` parameters:
