@@ -32,10 +32,18 @@ This SDK only works with Jetpack Compose. First of all, make sure that you have 
 <uses-permission android:name="android.permission.INTERNET" />
 ```
 
+## Prerequisites  
+
 1. Make sure you have an Alby account - if you don't, go to https://alby.com and create one.
-2. Get your brand id
-3. Import the alby widget `import com.alby.widget.AlbyWidgetScreen`
-3. Go to the Activity where you want to place the widget and wrap your existing screen with our widget
+2. Get your brand id - this is an organization id that represents your brand
+
+## Views
+
+### AlbyWidgetScreen
+The `AlbyWidgetScreen` is a component that displays the Alby widget inside a sheet (modal). This is ideal for cases where you want the widget to appear in an overlay or pop-up format, giving users the option to engage with the widget without leaving the current screen.
+
+1. Import the alby widget `import com.alby.widget.AlbyWidgetScreen`
+2. Go to the Activity where you want to place the widget and wrap your existing screen with our widget and pass in the required `brandId` and `productId` parameters:
 ```
 AlbyWidgetScreen(brandId = "your-brand-id", productId ="your-product-id" ) {
  YourScreenGoesHere()
@@ -44,6 +52,8 @@ AlbyWidgetScreen(brandId = "your-brand-id", productId ="your-product-id" ) {
 
 The default placement will be in the bottom of the screen. If you have a bottom bar or something similar, make sure you add place the
 bottom sheet around your tab and that you pass the padding for the bottom bar to the widget so it stays on top of the bottom bar.
+
+#### Example Usage
 
 ```kotlin
 class MainActivity : ComponentActivity() {
@@ -96,5 +106,33 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+}
+```
+
+### AlbyInlineWidget
+The `AlbyInlineWidgetView` is a component that allows embedding the Alby widget directly into your app's UI. It’s perfect for inline use on any page, like product details or brand-specific screens, where the widget integrates seamlessly within the existing view hierarchy.
+
+1. Import the alby widget `import com.alby.widget.AlbyInlineWidget`
+2. In the Composable function where you want to place the widget, add the `AlbyInlineWidget` component and pass in the required `brandId` and `productId` parameters:
+```
+AlbyInlineWidget(
+    brandId = "your brand id",
+    productId = "your product id",
+)
+```
+
+#### Example Usage
+```kotlin
+Column(
+    modifier = Modifier
+        .padding(innerPadding),
+    verticalArrangement = Arrangement.spacedBy(16.dp),
+) {
+    AlbyInlineWidget(
+        brandId = "your brand id",
+        productId = "your product id",
+        modifier = Modifier.padding(24.dp),
+    )
+
 }
 ```
