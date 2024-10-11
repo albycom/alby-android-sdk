@@ -37,7 +37,7 @@ This SDK only works with Jetpack Compose. First of all, make sure that you have 
 1. Make sure you have an Alby account - if you don't, go to https://alby.com and create one.
 2. Get your brand id - this is an organization id that represents your brand
 
-## Views
+## Components
 
 ### AlbyWidgetScreen
 The `AlbyWidgetScreen` is a component that displays the Alby widget inside a sheet (modal). This is ideal for cases where you want the widget to appear in an overlay or pop-up format, giving users the option to engage with the widget without leaving the current screen.
