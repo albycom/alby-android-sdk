@@ -59,7 +59,7 @@ fun WebViewScreen(
             }
         },
         update = { webView ->
-            var widgetUrl = "https://cdn.alby.com/assets/alby_widget.html?brandId=${brandId}&productId=${productId}&component=${component}"
+            var widgetUrl = "https://cdn.alby.com/assets/alby_widget.html?brandId=${brandId}&productId=${productId}&component=${component}&useBrandStyling=false"
             if (variantId != null) {
                 widgetUrl += "&variantId=${variantId}"
             }
