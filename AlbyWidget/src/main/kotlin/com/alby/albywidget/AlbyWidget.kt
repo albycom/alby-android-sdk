@@ -51,6 +51,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalFocusManager
@@ -65,7 +66,7 @@ import kotlinx.coroutines.launch
 
 class AlbyWidgetWebViewInterface(
     private val coroutineScope: CoroutineScope,
-    private val bottomSheetState: HideableBottomSheetState,
+    private val bottomSheetState: HideableBottomSheetState? = null,
     private val isLoading: MutableState<Boolean>,
     private val isLoadingText: MutableState<String>
 ) {
@@ -78,11 +79,11 @@ class AlbyWidgetWebViewInterface(
             with(message) {
                 when {
                     message == "preview-button-clicked" -> {
-                        bottomSheetState.expand()
+                        bottomSheetState?.expand()
                     }
 
                     message == "widget-rendered" -> {
-                        bottomSheetState.show()
+                        bottomSheetState?.show()
                     }
 
                     contains("streaming-message") -> {
@@ -161,6 +162,41 @@ fun AlbyWidgetScreen(
     }
 }
 
+/**
+ * A Composable function that displays the alby Inline Widget within the app.
+ *
+ * @param modifier Allows external components to apply styling, such as padding or alignment,
+ * to the widget. Defaults to an empty [Modifier].
+ * @param brandId A unique identifier for the brand to be displayed in the widget.
+ * @param productId A unique identifier for the product associated with the widget.
+ * @param variantId An optional parameter representing a specific product variant to be displayed.
+ */
+@Composable
+fun AlbyInlineWidget(
+    modifier: Modifier = Modifier,
+    brandId: String,
+    productId: String,
+    variantId: String? = null,
+) {
+    val isLoading = remember { mutableStateOf(false) }
+    val isLoadingText = remember { mutableStateOf("") }
+    val coroutineScope = rememberCoroutineScope()
+    val jsInterface =
+        AlbyWidgetWebViewInterface(coroutineScope, null, isLoading, isLoadingText)
+    val webViewReference = remember { mutableStateOf<WebView?>(null) }
+
+    Box(modifier = modifier) {
+        WebViewScreen(
+            jsInterface,
+            webViewReference,
+            brandId,
+            productId,
+            variantId,
+            "alby-generative-qa"
+        )
+    }
+}
+
 @Composable
 fun BottomSheet(
     state: HideableBottomSheetState,
@@ -174,8 +210,6 @@ fun BottomSheet(
     val configuration = LocalConfiguration.current
     val heightDP = configuration.screenHeightDp
     val coroutineScope = rememberCoroutineScope()
-
-
 
     Column(
         modifier = Modifier
@@ -243,6 +277,7 @@ fun BottomSheet(
             LazyColumn {
                 item {
                     WebViewScreen(webViewInterface, webViewReference, brandId, productId, variantId)
+                    webViewReference.value?.setBackgroundColor(Color.White.toArgb())
                 }
             }
         }

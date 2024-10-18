@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -41,6 +42,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.alby.widget.AlbyWidgetScreen
+import com.alby.widget.AlbyInlineWidget
 import com.example.sample.ui.theme.AlbyWidgetTheme
 
 data class TabBarItem(
@@ -111,7 +113,25 @@ class MainActivity : ComponentActivity() {
 
                             }
                             composable(alertsTab.title) {
-                                Text(alertsTab.title)
+                                Column(
+                                    modifier = Modifier
+                                        .padding(innerPadding),
+                                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                                ) {
+                                    Text(
+                                        modifier = Modifier.padding(8.dp),
+                                        text =
+                                        "Testss"
+                                    )
+
+                                    AlbyInlineWidget(
+                                        brandId = "c8866843-ce73-496e-b14e-73be14e6450a",
+                                        modifier = Modifier.padding(24.dp),
+                                        productId = "100037",
+                                    )
+
+                                }
+
                             }
                             composable(settingsTab.title) {
                                 Text(settingsTab.title)
