@@ -20,6 +20,7 @@ fun WebViewScreen(
     webViewReference: MutableState<WebView?>,
     brandId: String,
     productId: String,
+    widgetId: String? = null,
     variantId: String? = null,
     component: String? = "alby-mobile-generative-qa"
 ) {
@@ -62,6 +63,9 @@ fun WebViewScreen(
             var widgetUrl = "https://cdn.alby.com/assets/alby_widget.html?brandId=${brandId}&productId=${productId}&component=${component}&useBrandStyling=false"
             if (variantId != null) {
                 widgetUrl += "&variantId=${variantId}"
+            }
+            if (widgetId != null) {
+                widgetUrl += "&widgetId=${widgetId}"
             }
 
             webView.loadUrl(widgetUrl)
