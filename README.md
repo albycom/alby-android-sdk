@@ -36,6 +36,8 @@ This SDK only works with Jetpack Compose. First of all, make sure that you have 
 
 1. Make sure you have an Alby account - if you don't, go to https://alby.com and create one.
 2. Get your brand id - this is an organization id that represents your brand
+3. Get your widget id - this is a unique id that you can get in the widgets embed page inside the alby UI.
+
 
 ## Components
 
@@ -43,9 +45,9 @@ This SDK only works with Jetpack Compose. First of all, make sure that you have 
 The `AlbyWidgetScreen` is a component that displays the Alby widget inside a sheet (modal). This is ideal for cases where you want the widget to appear in an overlay or pop-up format, giving users the option to engage with the widget without leaving the current screen.
 
 1. Import the alby widget `import com.alby.widget.AlbyWidgetScreen`
-2. Go to the Activity where you want to place the widget and wrap your existing screen with our widget and pass in the required `brandId` and `productId` parameters:
+2. Go to the Activity where you want to place the widget and wrap your existing screen with our widget and pass in the required `brandId`, `productId` and `widgetId` parameters:
 ```
-AlbyWidgetScreen(brandId = "your-brand-id", productId ="your-product-id" ) {
+AlbyWidgetScreen(brandId = "your-brand-id", productId = "your-product-id", widgetId = "your-widget-id" ) {
  YourScreenGoesHere()
 }
 ```
@@ -86,7 +88,7 @@ class MainActivity : ComponentActivity() {
 
                         NavHost(navController = navController, startDestination = homeTab.title) {
                             composable(homeTab.title) {
-                                AlbyWidgetScreen(brandId = "your brand id", productId = "your product id", bottomOffset = bottomPadding) {
+                                AlbyWidgetScreen(brandId = "your brand id", productId = "your product id", widgetId = "your widget id", bottomOffset = bottomPadding) {
                                     Text(homeTab.title)
                                 }
 
@@ -113,11 +115,12 @@ class MainActivity : ComponentActivity() {
 The `AlbyInlineWidget` is a component that allows embedding the Alby widget directly into your app's UI. It’s perfect for inline use on any page, like product details or brand-specific screens, where the widget integrates seamlessly within the existing view hierarchy.
 
 1. Import the alby widget `import com.alby.widget.AlbyInlineWidget`
-2. In the Composable function where you want to place the widget, add the `AlbyInlineWidget` component and pass in the required `brandId` and `productId` parameters:
+2. In the Composable function where you want to place the widget, add the `AlbyInlineWidget` component and pass in the required `brandId`, `productId` and `widgetId` parameters:
 ```
 AlbyInlineWidget(
     brandId = "your brand id",
     productId = "your product id",
+    widgetId = "your widget id"
 )
 ```
 
@@ -131,6 +134,7 @@ Column(
     AlbyInlineWidget(
         brandId = "your brand id",
         productId = "your product id",
+        widgetId = "your widget id",
         modifier = Modifier.padding(24.dp),
     )
 

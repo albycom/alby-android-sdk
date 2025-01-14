@@ -121,7 +121,7 @@ class MainActivity : ComponentActivity() {
                                     Text(
                                         modifier = Modifier.padding(8.dp),
                                         text =
-                                        "Testss"
+                                        "Test"
                                     )
 
                                     AlbyInlineWidget(

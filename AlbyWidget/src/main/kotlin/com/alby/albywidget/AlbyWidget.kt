@@ -107,6 +107,7 @@ class AlbyWidgetWebViewInterface(
 fun AlbyWidgetScreen(
     brandId: String,
     productId: String,
+    widgetId: String? = null,
     variantId: String? = null,
     bottomOffset: Dp? = null,
     content: @Composable () -> Unit
@@ -141,6 +142,7 @@ fun AlbyWidgetScreen(
                 jsInterface,
                 brandId,
                 productId,
+                widgetId,
                 variantId,
                 finalBottomOffset
             )
@@ -169,6 +171,7 @@ fun AlbyWidgetScreen(
  * to the widget. Defaults to an empty [Modifier].
  * @param brandId A unique identifier for the brand to be displayed in the widget.
  * @param productId A unique identifier for the product associated with the widget.
+ * @param widgetId A unique identifier for the id associated with the widget.
  * @param variantId An optional parameter representing a specific product variant to be displayed.
  */
 @Composable
@@ -176,6 +179,7 @@ fun AlbyInlineWidget(
     modifier: Modifier = Modifier,
     brandId: String,
     productId: String,
+    widgetId: String? = null,
     variantId: String? = null,
 ) {
     val isLoading = remember { mutableStateOf(false) }
@@ -191,6 +195,7 @@ fun AlbyInlineWidget(
             webViewReference,
             brandId,
             productId,
+            widgetId,
             variantId,
             "alby-generative-qa"
         )
@@ -204,6 +209,7 @@ fun BottomSheet(
     webViewInterface: AlbyWidgetWebViewInterface,
     brandId: String,
     productId: String,
+    widgetId: String? = null,
     variantId: String? = null,
     bottomOffset: Dp
 ) {
@@ -276,7 +282,7 @@ fun BottomSheet(
         ) {
             LazyColumn {
                 item {
-                    WebViewScreen(webViewInterface, webViewReference, brandId, productId, variantId)
+                    WebViewScreen(webViewInterface, webViewReference, brandId, productId, widgetId, variantId)
                     webViewReference.value?.setBackgroundColor(Color.White.toArgb())
                 }
             }
