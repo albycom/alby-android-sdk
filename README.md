@@ -140,3 +140,25 @@ Column(
 
 }
 ```
+
+## Event Tracking
+The SDK also provides an API to sending purchase data via HTTP requests.
+
+### Usage
+1. Initialize the AlbyPurchasePixel Class 
+```kotlin
+import com.alby.widget.AlbyPurchasePixel
+
+val purchasePixel = AlbyPurchasePixel()
+```
+2. Use the sendPurchasePixel method to send a purchase pixel request:
+```kotlin
+purchasePixel.sendPurchasePixel(
+    brandId = "",                                     // Your brand ID
+    orderId = 12345,                                  // Order ID (String or Number)
+    orderTotal = 99.99,                               // Order total (Float or Number)
+    productIds = listOf("A123", 456),                 // List of product IDs (String or Number)
+    currency = "USD"                                  // Currency code
+)
+```
+
