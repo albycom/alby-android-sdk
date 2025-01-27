@@ -44,7 +44,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.alby.widget.AlbyInlineWidget
-import com.alby.widget.AlbyPurchasePixel
+import com.alby.widget.AlbySDK
 import com.alby.widget.AlbyWidgetScreen
 import com.example.sample.ui.theme.AlbyWidgetTheme
 
@@ -60,6 +60,9 @@ class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        AlbySDK.initialize("953bfd04-cb12-4b2d-8166-318368479fb0")
+
         setContent {
             // setting up the individual tabs
             val homeTab = TabBarItem(
@@ -222,8 +225,6 @@ fun TabBarBadgeView(count: Int? = null) {
 // This was added to demonstrate that we are infact changing views when we click a new tab
 @Composable
 fun MoreView() {
-    val purchasePixel = remember { AlbyPurchasePixel() } // Create once and remember
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -238,8 +239,7 @@ fun MoreView() {
         Button(
             onClick = {
                 // Call the AlbyPurchasePixel method
-                purchasePixel.sendPurchasePixel(
-                    brandId = "953bfd04-cb12-4b2d-8166-318368479fb0",
+                AlbySDK.sendPurchasePixel(
                     orderId = 12345,
                     orderTotal = 99.99,
                     productIds = listOf("A123", 456),
