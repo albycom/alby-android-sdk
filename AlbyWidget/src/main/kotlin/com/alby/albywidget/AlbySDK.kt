@@ -15,7 +15,8 @@ object AlbySDK {
     private var brandId: String? = null
     private var isInitialized = false
     private val client = OkHttpClient()
-    private val analyticsEndpoint = "https://eks.alby.com/analytics-service/v1/api/track"
+    private const val analyticsEndpoint: String =
+        "https://eks.alby.com/analytics-service/v1/api/track"
 
     // Initialization
     fun initialize(brandId: String) {
@@ -88,13 +89,11 @@ object AlbySDK {
         }
     }
 
-
     private fun getUserId(): String? {
         val cookies = CookieManager.getInstance().getCookie("https://cdn.alby.com")
         val cookieMap = parseCookies(cookies)
         return cookieMap["_alby_user"]
     }
-
 
     private fun performRequest(url: String, method: String = "GET", requestBody: String? = null) {
         val requestBuilder = Request.Builder().url(url)
