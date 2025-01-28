@@ -93,7 +93,7 @@ object AlbySDK {
             put("context", JSONObject().apply {
                 put("locale", "en-US")
                 put("userAgent", System.getProperty("http.agent"))
-                put("source", "android")
+                put("source", "android-sdk")
             })
             put("event_timestamp", System.currentTimeMillis() / 1000.0)
         }
