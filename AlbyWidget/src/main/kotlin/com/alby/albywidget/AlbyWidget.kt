@@ -110,7 +110,10 @@ fun AlbyWidgetScreen(
     widgetId: String? = null,
     variantId: String? = null,
     bottomOffset: Dp? = null,
-    content: @Composable () -> Unit
+    testId: String? = null,
+    testVersion: String? = null,
+    testDescription: String? = null,
+    content: @Composable () -> Unit,
 ) {
     val bottomSheetState =
         rememberHideableBottomSheetState(initialValue = HideableBottomSheetValue.Hidden)
@@ -144,6 +147,9 @@ fun AlbyWidgetScreen(
                 productId,
                 widgetId,
                 variantId,
+                testId,
+                testVersion,
+                testDescription,
                 finalBottomOffset
             )
         },
@@ -173,6 +179,9 @@ fun AlbyWidgetScreen(
  * @param productId A unique identifier for the product associated with the widget.
  * @param widgetId A unique identifier for the id associated with the widget.
  * @param variantId An optional parameter representing a specific product variant to be displayed.
+ * @param testId A unique identifier for the test associated with the widget.
+ * @param testVersion A unique identifier for the version associated with the widget.
+ * @param testDescription A unique identifier for the description associated with the widget.
  */
 @Composable
 fun AlbyInlineWidget(
@@ -181,6 +190,9 @@ fun AlbyInlineWidget(
     productId: String,
     widgetId: String? = null,
     variantId: String? = null,
+    testId: String? = null,
+    testVersion: String? = null,
+    testDescription: String? = null
 ) {
     val isLoading = remember { mutableStateOf(false) }
     val isLoadingText = remember { mutableStateOf("") }
@@ -197,7 +209,10 @@ fun AlbyInlineWidget(
             productId,
             widgetId,
             variantId,
-            "alby-generative-qa"
+            "alby-generative-qa",
+            testId,
+            testVersion,
+            testDescription
         )
     }
 }
@@ -211,6 +226,9 @@ fun BottomSheet(
     productId: String,
     widgetId: String? = null,
     variantId: String? = null,
+    testId: String? = null,
+    testVersion: String? = null,
+    testDescription: String? = null,
     bottomOffset: Dp
 ) {
     val configuration = LocalConfiguration.current
@@ -282,7 +300,17 @@ fun BottomSheet(
         ) {
             LazyColumn {
                 item {
-                    WebViewScreen(webViewInterface, webViewReference, brandId, productId, widgetId, variantId)
+                    WebViewScreen(
+                        webViewInterface,
+                        webViewReference,
+                        brandId,
+                        productId,
+                        widgetId,
+                        variantId,
+                        testId,
+                        testVersion,
+                        testDescription
+                    )
                     webViewReference.value?.setBackgroundColor(Color.White.toArgb())
                 }
             }
@@ -292,8 +320,6 @@ fun BottomSheet(
 }
 
 fun calculateHeight(state: HideableBottomSheetState, screenHeight: Int): Dp {
-    Log.d("height", state.currentValue.toString())
-    Log.d("height", screenHeight.toString())
     if (state.isHidden) {
         return 0.dp
     }

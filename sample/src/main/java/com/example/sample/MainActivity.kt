@@ -61,7 +61,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        AlbySDK.initialize("953bfd04-cb12-4b2d-8166-318368479fb0")
+        AlbySDK.initialize("953bfd04-cb12-4b2d-8166-318368479fb0", this)
 
         setContent {
             // setting up the individual tabs
@@ -105,8 +105,8 @@ class MainActivity : ComponentActivity() {
                         NavHost(navController = navController, startDestination = homeTab.title) {
                             composable(homeTab.title) {
                                 AlbyWidgetScreen(
-                                    brandId = "017d2e91-58ee-41e4-a3c9-9cee17624b31",
-                                    productId = "100037",
+                                    brandId = "953bfd04-cb12-4b2d-8166-318368479fb0",
+                                    productId = "alby",
                                     bottomOffset = bottomPadding
                                 ) {
                                     LazyColumn {
@@ -124,20 +124,12 @@ class MainActivity : ComponentActivity() {
                                         .padding(innerPadding),
                                     verticalArrangement = Arrangement.spacedBy(16.dp),
                                 ) {
-                                    Text(
-                                        modifier = Modifier.padding(8.dp),
-                                        text =
-                                        "Test"
-                                    )
-
                                     AlbyInlineWidget(
                                         brandId = "c8866843-ce73-496e-b14e-73be14e6450a",
                                         modifier = Modifier.padding(24.dp),
                                         productId = "100037",
                                     )
-
                                 }
-
                             }
                             composable(settingsTab.title) {
                                 Text(settingsTab.title)
@@ -249,6 +241,16 @@ fun MoreView() {
             modifier = Modifier.padding(top = 16.dp)
         ) {
             Text("Call Purchase Pixel")
+        }
+
+        Button(
+            onClick = {
+
+                AlbySDK.sendAddToCartEvent(99, "123", "USD", "3")
+            },
+            modifier = Modifier.padding(top = 16.dp)
+        ) {
+            Text("Send Add to Cart Event")
         }
     }
 }

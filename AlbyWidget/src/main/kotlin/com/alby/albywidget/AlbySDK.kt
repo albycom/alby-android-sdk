@@ -1,6 +1,11 @@
 package com.alby.widget
 
+import android.annotation.SuppressLint
+import android.content.Context
 import android.webkit.CookieManager
+import android.webkit.WebView
+import android.view.ViewGroup
+import android.view.View
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -19,13 +24,22 @@ object AlbySDK {
         "https://eks.alby.com/analytics-service/v1/api/track"
 
     // Initialization
-    fun initialize(brandId: String) {
+    @SuppressLint("SetJavaScriptEnabled")
+    fun initialize(brandId: String, context: Context) {
         if (isInitialized) {
             println("AlbySDK is already initialized.")
             return
         }
 
         this.brandId = brandId
+
+        // Create and load alby js in the background
+        val webView = WebView(context)
+        webView.settings.javaScriptEnabled = true
+        webView.layoutParams = ViewGroup.LayoutParams(0, 0)  // Zero size
+        webView.visibility = View.GONE  // Ensure it's not visible
+        webView.loadUrl("https://cdn.alby.com/assets/alby_widget.html?brandId=${brandId}")
+
         isInitialized = true
     }
 
@@ -60,7 +74,7 @@ object AlbySDK {
         }
     }
 
-    fun sendAddToCartEvent(price: String, variantId: String, currency: String, quantity: String) {
+    fun sendAddToCartEvent(price: Any, variantId: String, currency: String, quantity: String) {
         ensureInitialized()
 
         val payload = JSONObject().apply {
@@ -71,7 +85,7 @@ object AlbySDK {
                 getUserId()
             )
             put("properties", JSONObject().apply {
-                put("price", price)
+                put("price", price.toString())
                 put("variant_id", variantId)
                 put("currency", currency)
                 put("quantity", quantity)

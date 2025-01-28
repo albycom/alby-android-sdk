@@ -22,14 +22,20 @@ fun WebViewScreen(
     productId: String,
     widgetId: String? = null,
     variantId: String? = null,
-    component: String? = "alby-mobile-generative-qa"
+    component: String? = "alby-mobile-generative-qa",
+    testId: String? = null,
+    testVersion: String? = null,
+    testDescription: String? = null
 ) {
     AndroidView(
         factory = { context ->
             WebView(context).apply {
                 settings.javaScriptEnabled = true
                 webViewClient = object : WebViewClient() {
-                    override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest): Boolean {
+                    override fun shouldOverrideUrlLoading(
+                        view: WebView?,
+                        request: WebResourceRequest
+                    ): Boolean {
                         // Open the URL in an external browser
                         url?.let {
                             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(it))
@@ -37,6 +43,7 @@ fun WebViewScreen(
                         }
                         return true
                     }
+
                     override fun onPageFinished(view: WebView?, url: String?) {
                         // Inject JavaScript to remove padding and margin from the body and html elements
                         this@apply.loadUrl(
@@ -60,12 +67,22 @@ fun WebViewScreen(
             }
         },
         update = { webView ->
-            var widgetUrl = "https://cdn.alby.com/assets/alby_widget.html?brandId=${brandId}&productId=${productId}&component=${component}&useBrandStyling=false"
+            var widgetUrl =
+                "https://cdn.alby.com/assets/alby_widget.html?brandId=${brandId}&productId=${productId}&component=${component}&useBrandStyling=false"
             if (variantId != null) {
                 widgetUrl += "&variantId=${variantId}"
             }
             if (widgetId != null) {
                 widgetUrl += "&widgetId=${widgetId}"
+            }
+            if (testId != null) {
+                widgetUrl += "&testId=${testId}"
+            }
+            if (testVersion != null) {
+                widgetUrl += "&testVersion=${testVersion}"
+            }
+            if (testDescription != null) {
+                widgetUrl += "&testDescription=${testDescription}"
             }
 
             webView.loadUrl(widgetUrl)
