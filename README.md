@@ -4,16 +4,16 @@
 ![Maven Central Version](https://img.shields.io/maven-central/v/com.alby.widget/alby-widget)
 
 ## Installation
-AlbyWidget for Android requires a SDK 29+ and Jetpack Compose.
+AlbyWidget for Android requires a SDK 23+ and Jetpack Compose.
 
 ### Gradle Kotlin
 ```
-implementation("com.alby.widget:alby-widget:0.0.15")
+implementation("com.alby.widget:alby-widget:0.2.1")
 ```
 
 ### Gradle
 ```
-implementation 'com.alby.widget:alby-widget:0.0.15'
+implementation 'com.alby.widget:alby-widget:0.2.1'
 ```
 
 ### Apache Maven
@@ -21,7 +21,7 @@ implementation 'com.alby.widget:alby-widget:0.0.15'
 <dependency>
     <groupId>com.alby.widget</groupId>
     <artifactId>alby-widget</artifactId>
-    <version>0.0.15</version>
+    <version>0.2.1</version>
 </dependency>
 ```
 
