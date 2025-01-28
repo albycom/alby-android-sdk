@@ -51,7 +51,7 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Upload library
-        run: ./gradlew :AlbyWidget:publishAllPublicationsToMavenCentralRepository
+        run: ./gradlew :AlbyWidget:publishAndReleaseToMavenCentral --no-configuration-cache
         env:
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.ORG_GRADLE_PROJECT_MAVENCENTRALUSERNAME }}
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.ORG_GRADLE_PROJECT_MAVENCENTRALPASSWORD }}
