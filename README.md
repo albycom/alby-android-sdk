@@ -75,6 +75,12 @@ AlbyWidgetScreen(brandId = "your-brand-id", productId = "your-product-id", widge
  YourScreenGoesHere()
 }
 ```
+3. Optional: You can pass in A/B test parameters to the widget by passing in the `testId`, `testVersion` and `testDescription` parameters:
+```kotlin
+AlbyWidgetScreen(brandId = "your-brand-id", productId = "your-product-id", widgetId = "your-widget-id", testId = "your-test-id", testVersion = "your-test-version", testDescription = "your-test-description" ) {
+ YourScreenGoesHere()
+}
+```
 
 The default placement will be in the bottom of the screen. If you have a bottom bar or something similar, make sure you add place the
 bottom sheet around your tab and that you pass the padding for the bottom bar to the widget so it stays on top of the bottom bar.
@@ -87,11 +93,22 @@ The `AlbyInlineWidget` is a component that allows embedding the Alby widget dire
 import com.alby.widget.AlbyInlineWidget
 ```
 2. In the Composable function where you want to place the widget, add the `AlbyInlineWidget` component and pass in the required `brandId`, `productId` and `widgetId` parameters:
-```
+```kotlin
 AlbyInlineWidget(
     brandId = "your-brand-id",
     productId = "your-product-id",
     widgetId = "your-widget-id"
+)
+```
+3. Optional: You can pass in A/B test parameters to the widget by passing in the `testId`, `testVersion` and `testDescription` parameters:
+```kotlin
+AlbyInlineWidget(
+    brandId = "your-brand-id",
+    productId = "your-product-id",
+    widgetId = "your-widget-id",
+    testId = "your-test-id",
+    testVersion = "your-test-version",
+    testDescription = "your-test-description"
 )
 ```
 
