@@ -8,12 +8,12 @@ AlbyWidget for Android requires a SDK 23+ and Jetpack Compose.
 
 ### Gradle Kotlin
 ```
-implementation("com.alby.widget:alby-widget:0.2.1")
+implementation("com.alby.widget:alby-widget:0.3.0")
 ```
 
 ### Gradle
 ```
-implementation 'com.alby.widget:alby-widget:0.2.1'
+implementation 'com.alby.widget:alby-widget:0.3.0'
 ```
 
 ### Apache Maven
@@ -21,7 +21,7 @@ implementation 'com.alby.widget:alby-widget:0.2.1'
 <dependency>
     <groupId>com.alby.widget</groupId>
     <artifactId>alby-widget</artifactId>
-    <version>0.2.1</version>
+    <version>0.3.0</version>
 </dependency>
 ```
 
