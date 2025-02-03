@@ -71,19 +71,38 @@ import com.alby.widget.AlbyWidgetScreen
 ```
 2. Go to the Activity where you want to place the widget and wrap your existing screen with our widget and pass in the required `brandId`, `productId` and `widgetId` parameters:
 ```kotlin
-AlbyWidgetScreen(brandId = "your-brand-id", productId = "your-product-id", widgetId = "your-widget-id" ) {
- YourScreenGoesHere()
-}
-```
-3. Optional: You can pass in A/B test parameters to the widget by passing in the `testId`, `testVersion` and `testDescription` parameters:
-```kotlin
-AlbyWidgetScreen(brandId = "your-brand-id", productId = "your-product-id", widgetId = "your-widget-id", testId = "your-test-id", testVersion = "your-test-version", testDescription = "your-test-description" ) {
- YourScreenGoesHere()
+AlbyWidgetScreen(
+    brandId = "your-brand-id", 
+    productId = "your-product-id", 
+    widgetId = "your-widget-id",
+    onThreadIdChanged = { newThreadId ->
+        // Handle the new thread ID here
+        // newThreadId will be null if the conversation is reset/cleared
+        println("Thread ID changed to: $newThreadId")
+    }
+) {
+    YourScreenGoesHere()
 }
 ```
 
-The default placement will be in the bottom of the screen. If you have a bottom bar or something similar, make sure you add place the
-bottom sheet around your tab and that you pass the padding for the bottom bar to the widget so it stays on top of the bottom bar.
+3. Optional parameters:
+```kotlin
+AlbyWidgetScreen(
+    brandId = "your-brand-id",
+    productId = "your-product-id",
+    widgetId = "your-widget-id",
+    threadId = "existing-thread-id", // Restore a previous conversation
+    bottomOffset = 56.dp, // Add padding for bottom navigation/bars
+    testId = "your-test-id",
+    testVersion = "your-test-version",
+    testDescription = "your-test-description",
+    onThreadIdChanged = { newThreadId -> 
+        // Handle thread ID changes
+    }
+) {
+    YourScreenGoesHere()
+}
+```
 
 ### AlbyInlineWidget
 The `AlbyInlineWidget` is a component that allows embedding the Alby widget directly into your app's UI. It's perfect for inline use on any page, like product details or brand-specific screens, where the widget integrates seamlessly within the existing view hierarchy.
@@ -92,24 +111,59 @@ The `AlbyInlineWidget` is a component that allows embedding the Alby widget dire
 ```kotlin
 import com.alby.widget.AlbyInlineWidget
 ```
-2. In the Composable function where you want to place the widget, add the `AlbyInlineWidget` component and pass in the required `brandId`, `productId` and `widgetId` parameters:
+
+2. In the Composable function where you want to place the widget, add the `AlbyInlineWidget` component:
 ```kotlin
 AlbyInlineWidget(
-    brandId = "your-brand-id",
-    productId = "your-product-id",
-    widgetId = "your-widget-id"
-)
-```
-3. Optional: You can pass in A/B test parameters to the widget by passing in the `testId`, `testVersion` and `testDescription` parameters:
-```kotlin
-AlbyInlineWidget(
+    modifier = Modifier.padding(24.dp),
     brandId = "your-brand-id",
     productId = "your-product-id",
     widgetId = "your-widget-id",
+    threadId = "existing-thread-id", // Optional: restore a previous conversation
+    onThreadIdChanged = { newThreadId ->
+        // Handle the new thread ID here
+        // newThreadId will be null if the conversation is reset/cleared
+        println("Thread ID changed to: $newThreadId")
+    }
+)
+```
+
+3. Optional parameters:
+```kotlin
+AlbyInlineWidget(
+    modifier = Modifier.padding(24.dp),
+    brandId = "your-brand-id",
+    productId = "your-product-id",
+    widgetId = "your-widget-id",
+    threadId = "existing-thread-id",
     testId = "your-test-id",
     testVersion = "your-test-version",
-    testDescription = "your-test-description"
+    testDescription = "your-test-description",
+    onThreadIdChanged = { newThreadId -> 
+        // Handle thread ID changes
+    }
 )
+```
+
+## Conversation Management
+Both `AlbyWidgetScreen` and `AlbyInlineWidget` support conversation persistence through thread IDs:
+
+1. **Restoring Conversations**: Pass an existing thread ID to continue a previous conversation:
+```kotlin
+threadId = "existing-thread-id"
+```
+
+2. **Tracking Thread Changes**: Listen for thread ID changes to persist conversations:
+```kotlin
+onThreadIdChanged = { newThreadId ->
+    if (newThreadId != null) {
+        // Save the thread ID for later use
+        saveThreadId(newThreadId)
+    } else {
+        // Conversation was reset/cleared
+        clearSavedThreadId()
+    }
+}
 ```
 
 ## Event Tracking
@@ -121,7 +175,7 @@ The SDK also provides an API to sending purchase data and other events via HTTP 
 AlbySDK.sendPurchasePixel(
     orderId = 12345, // Order ID (String or Number)
     orderTotal = 99.99, // Order total (Float or Number)
-    productIds = listOf("A123", 456), // List of product IDs (String or Number)
+    variantIds = listOf("A123", 456), // List of variant IDs (String or Number)
     currency = "USD" // Currency of the order
 )
 ```

@@ -5,12 +5,11 @@ import android.content.Intent
 import android.net.Uri
 import android.util.Log
 import android.webkit.WebResourceRequest
+import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.viewinterop.AndroidView
 
 @SuppressLint("SetJavaScriptEnabled", "JavascriptInterface")
@@ -23,14 +22,19 @@ fun WebViewScreen(
     widgetId: String? = null,
     variantId: String? = null,
     component: String? = "alby-mobile-generative-qa",
+    threadId: String? = null,
     testId: String? = null,
     testVersion: String? = null,
-    testDescription: String? = null
+    testDescription: String? = null,
+    focusable: Boolean = false
 ) {
     AndroidView(
         factory = { context ->
             WebView(context).apply {
-                settings.javaScriptEnabled = true
+                settings.apply {
+                    javaScriptEnabled = true
+                    domStorageEnabled = true
+                }
                 webViewClient = object : WebViewClient() {
                     override fun shouldOverrideUrlLoading(
                         view: WebView?,
@@ -56,24 +60,28 @@ fun WebViewScreen(
                         )
                     }
                 }
-                isFocusable = false
-                isFocusableInTouchMode = false
+                isFocusable = focusable
+                isFocusableInTouchMode = focusable
+                setOverScrollMode(WebView.OVER_SCROLL_NEVER);
+
                 settings.loadWithOverviewMode = false
                 settings.useWideViewPort = true
                 settings.setSupportZoom(false)
-                settings.domStorageEnabled = true
                 addJavascriptInterface(javascriptInterface, "appInterface")
                 webViewReference.value = this
             }
         },
         update = { webView ->
             var widgetUrl =
-                "https://cdn.alby.com/assets/alby_widget.html?brandId=${brandId}&productId=${productId}&component=${component}&useBrandStyling=false"
+                "https://cdn.alby.com/assets/alby_widget.html?brandId=${brandId}&productId=${productId}&component=${component}"
             if (variantId != null) {
                 widgetUrl += "&variantId=${variantId}"
             }
             if (widgetId != null) {
                 widgetUrl += "&widgetId=${widgetId}"
+            }
+            if (threadId != null) {
+                widgetUrl += "&threadId=${threadId}"
             }
             if (testId != null) {
                 widgetUrl += "&testId=${testId}"

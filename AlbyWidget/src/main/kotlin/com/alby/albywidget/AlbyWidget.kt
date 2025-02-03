@@ -1,6 +1,5 @@
 package com.alby.widget
 
-import android.util.Log
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import androidx.compose.foundation.Image
@@ -27,14 +26,6 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material3.CircularProgressIndicator
@@ -42,15 +33,22 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
@@ -60,6 +58,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -68,7 +67,8 @@ class AlbyWidgetWebViewInterface(
     private val coroutineScope: CoroutineScope,
     private val bottomSheetState: HideableBottomSheetState? = null,
     private val isLoading: MutableState<Boolean>,
-    private val isLoadingText: MutableState<String>
+    private val isLoadingText: MutableState<String>,
+    private val onThreadIdChanged: ((String?) -> Unit)? = null
 ) {
 
     @JavascriptInterface
@@ -96,23 +96,44 @@ class AlbyWidgetWebViewInterface(
                         isLoading.value = false
                         isLoadingText.value = ""
                     }
+
+                    contains("thread-id-changed") -> {
+                        val threadId = message.replace("thread-id-changed:", "")
+                        onThreadIdChanged?.invoke(threadId.takeIf { it.isNotBlank() })
+                    }
                 }
             }
         }
     }
 }
 
-
+/**
+ * A Composable function that displays the alby Widget within a bottom sheet.
+ *
+ * @param brandId A unique identifier for the brand to be displayed in the widget.
+ * @param productId A unique identifier for the product associated with the widget.
+ * @param widgetId A unique identifier for the id associated with the widget.
+ * @param variantId An optional parameter representing a specific product variant to be displayed.
+ * @param threadId An optional parameter to restore a previous conversation a customer had.
+ * @param bottomOffset An optional parameter to add padding to the bottom of the widget.
+ * @param testId A unique identifier for the test associated with the widget.
+ * @param testVersion A unique identifier for the version associated with the widget.
+ * @param testDescription A unique identifier for the description associated with the widget.
+ * @param onThreadIdChanged An optional callback that is triggered when the thread ID changes, providing the new thread ID as a String or null if empty.
+ * @param content The content to be displayed above the bottom sheet.
+ */
 @Composable
 fun AlbyWidgetScreen(
     brandId: String,
     productId: String,
     widgetId: String? = null,
     variantId: String? = null,
+    threadId: String? = null,
     bottomOffset: Dp? = null,
     testId: String? = null,
     testVersion: String? = null,
     testDescription: String? = null,
+    onThreadIdChanged: ((String?) -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
     val bottomSheetState =
@@ -124,7 +145,7 @@ fun AlbyWidgetScreen(
     val coroutineScope = rememberCoroutineScope()
 
     val jsInterface =
-        AlbyWidgetWebViewInterface(coroutineScope, bottomSheetState, isLoading, isLoadingText)
+        AlbyWidgetWebViewInterface(coroutineScope, bottomSheetState, isLoading, isLoadingText, onThreadIdChanged)
 
     val finalBottomOffset: Dp = bottomOffset ?: 0.dp;
 
@@ -147,6 +168,7 @@ fun AlbyWidgetScreen(
                 productId,
                 widgetId,
                 variantId,
+                threadId,
                 testId,
                 testVersion,
                 testDescription,
@@ -179,9 +201,11 @@ fun AlbyWidgetScreen(
  * @param productId A unique identifier for the product associated with the widget.
  * @param widgetId A unique identifier for the id associated with the widget.
  * @param variantId An optional parameter representing a specific product variant to be displayed.
+ * @param threadId An optional parameter to restore a previous conversation a customer had.
  * @param testId A unique identifier for the test associated with the widget.
  * @param testVersion A unique identifier for the version associated with the widget.
  * @param testDescription A unique identifier for the description associated with the widget.
+ * @param onThreadIdChanged An optional callback that is triggered when the thread ID changes, providing the new thread ID as a String or null if empty.
  */
 @Composable
 fun AlbyInlineWidget(
@@ -190,15 +214,17 @@ fun AlbyInlineWidget(
     productId: String,
     widgetId: String? = null,
     variantId: String? = null,
+    threadId: String? = null,
     testId: String? = null,
     testVersion: String? = null,
-    testDescription: String? = null
+    testDescription: String? = null,
+    onThreadIdChanged: ((String?) -> Unit)? = null
 ) {
     val isLoading = remember { mutableStateOf(false) }
     val isLoadingText = remember { mutableStateOf("") }
     val coroutineScope = rememberCoroutineScope()
     val jsInterface =
-        AlbyWidgetWebViewInterface(coroutineScope, null, isLoading, isLoadingText)
+        AlbyWidgetWebViewInterface(coroutineScope, null, isLoading, isLoadingText, onThreadIdChanged)
     val webViewReference = remember { mutableStateOf<WebView?>(null) }
 
     Box(modifier = modifier) {
@@ -210,9 +236,11 @@ fun AlbyInlineWidget(
             widgetId,
             variantId,
             "alby-generative-qa",
+            threadId,
             testId,
             testVersion,
-            testDescription
+            testDescription,
+            focusable = true
         )
     }
 }
@@ -226,6 +254,7 @@ fun BottomSheet(
     productId: String,
     widgetId: String? = null,
     variantId: String? = null,
+    threadId: String? = null,
     testId: String? = null,
     testVersion: String? = null,
     testDescription: String? = null,
@@ -307,9 +336,12 @@ fun BottomSheet(
                         productId,
                         widgetId,
                         variantId,
+                        component = "alby-mobile-generative-qa",
+                        threadId,
                         testId,
                         testVersion,
-                        testDescription
+                        testDescription,
+                        focusable = false
                     )
                     webViewReference.value?.setBackgroundColor(Color.White.toArgb())
                 }
