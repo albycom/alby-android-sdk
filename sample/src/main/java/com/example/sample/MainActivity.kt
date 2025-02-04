@@ -108,6 +108,10 @@ class MainActivity : ComponentActivity() {
                                     productId = "100037",
                                     widgetId = "15b194d9-2641-41f2-a0d7-e258d73d0709",
                                     bottomOffset = bottomPadding,
+                                    onWidgetRendered = {
+                                        // Called when the widget has finished rendering
+                                        println("Widget is ready!")
+                                    }
                                 ) {
                                     LazyColumn {
                                         items(1) {
@@ -131,6 +135,10 @@ class MainActivity : ComponentActivity() {
                                         onThreadIdChanged = { newThreadId ->
                                             // Handle the new thread ID here
                                             println("Thread ID changed to: $newThreadId")
+                                        },
+                                        onWidgetRendered = {
+                                            // Called when the widget has finished rendering
+                                            println("Widget is ready!")
                                         }
                                     )
                                 }
