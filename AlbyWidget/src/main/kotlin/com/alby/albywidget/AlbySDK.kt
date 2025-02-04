@@ -2,10 +2,10 @@ package com.alby.widget
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.view.View
+import android.view.ViewGroup
 import android.webkit.CookieManager
 import android.webkit.WebView
-import android.view.ViewGroup
-import android.view.View
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -36,6 +36,7 @@ object AlbySDK {
         // Create and load alby js in the background
         val webView = WebView(context)
         webView.settings.javaScriptEnabled = true
+        webView.settings.domStorageEnabled = true
         webView.layoutParams = ViewGroup.LayoutParams(0, 0)  // Zero size
         webView.visibility = View.GONE  // Ensure it's not visible
         webView.loadUrl("https://cdn.alby.com/assets/alby_widget.html?brandId=${brandId}")
@@ -46,7 +47,7 @@ object AlbySDK {
     fun sendPurchasePixel(
         orderId: Any,
         orderTotal: Any,
-        productIds: List<Any>,
+        variantIds: List<Any>,
         currency: String
     ) {
         ensureInitialized()
@@ -55,7 +56,7 @@ object AlbySDK {
             "brand_id" to brandId,
             "order_id" to orderId.toString(),
             "order_total" to orderTotal.toString(),
-            "product_ids" to productIds.joinToString(",") { it.toString() },
+            "variant_ids" to variantIds.joinToString(",") { it.toString() },
             "currency" to currency
         )
 

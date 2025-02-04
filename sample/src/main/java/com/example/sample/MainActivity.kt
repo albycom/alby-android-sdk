@@ -32,7 +32,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -61,7 +60,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        AlbySDK.initialize("953bfd04-cb12-4b2d-8166-318368479fb0", this)
+        AlbySDK.initialize("c8866843-ce73-496e-b14e-73be14e6450a", this)
 
         setContent {
             // setting up the individual tabs
@@ -105,12 +104,17 @@ class MainActivity : ComponentActivity() {
                         NavHost(navController = navController, startDestination = homeTab.title) {
                             composable(homeTab.title) {
                                 AlbyWidgetScreen(
-                                    brandId = "953bfd04-cb12-4b2d-8166-318368479fb0",
-                                    productId = "alby",
-                                    bottomOffset = bottomPadding
+                                    brandId = "c8866843-ce73-496e-b14e-73be14e6450a",
+                                    productId = "100037",
+                                    widgetId = "15b194d9-2641-41f2-a0d7-e258d73d0709",
+                                    bottomOffset = bottomPadding,
+                                    onWidgetRendered = {
+                                        // Called when the widget has finished rendering
+                                        println("Widget is ready!")
+                                    }
                                 ) {
                                     LazyColumn {
-                                        items(100) {
+                                        items(1) {
                                             Text(homeTab.title)
                                         }
                                     }
@@ -128,6 +132,14 @@ class MainActivity : ComponentActivity() {
                                         brandId = "c8866843-ce73-496e-b14e-73be14e6450a",
                                         modifier = Modifier.padding(24.dp),
                                         productId = "100037",
+                                        onThreadIdChanged = { newThreadId ->
+                                            // Handle the new thread ID here
+                                            println("Thread ID changed to: $newThreadId")
+                                        },
+                                        onWidgetRendered = {
+                                            // Called when the widget has finished rendering
+                                            println("Widget is ready!")
+                                        }
                                     )
                                 }
                             }
@@ -234,7 +246,7 @@ fun MoreView() {
                 AlbySDK.sendPurchasePixel(
                     orderId = 12345,
                     orderTotal = 99.99,
-                    productIds = listOf("A123", 456),
+                    variantIds = listOf("A123", 456),
                     currency = "USD"
                 )
             },
