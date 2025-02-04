@@ -66,9 +66,10 @@ import kotlinx.coroutines.launch
 class AlbyWidgetWebViewInterface(
     private val coroutineScope: CoroutineScope,
     private val bottomSheetState: HideableBottomSheetState? = null,
-    private val isLoading: MutableState<Boolean>,
-    private val isLoadingText: MutableState<String>,
-    private val onThreadIdChanged: ((String?) -> Unit)? = null
+    private val isLoading: MutableState<Boolean>? = null,
+    private val isLoadingText: MutableState<String>? = null,
+    private val onThreadIdChanged: ((String?) -> Unit)? = null,
+    private val onWidgetRendered: (() -> Unit)? = null
 ) {
 
     @JavascriptInterface
@@ -84,17 +85,18 @@ class AlbyWidgetWebViewInterface(
 
                     message == "widget-rendered" -> {
                         bottomSheetState?.show()
+                        onWidgetRendered?.invoke()
                     }
 
                     contains("streaming-message") -> {
-                        isLoading.value = true
+                        isLoading?.value = true
                         val replacedResult = message.replace("streaming-message:", "")
-                        isLoadingText.value = replacedResult
+                        isLoadingText?.value = replacedResult
                     }
 
                     contains("streaming-finished") -> {
-                        isLoading.value = false
-                        isLoadingText.value = ""
+                        isLoading?.value = false
+                        isLoadingText?.value = ""
                     }
 
                     contains("thread-id-changed") -> {
@@ -120,6 +122,7 @@ class AlbyWidgetWebViewInterface(
  * @param testVersion A unique identifier for the version associated with the widget.
  * @param testDescription A unique identifier for the description associated with the widget.
  * @param onThreadIdChanged An optional callback that is triggered when the thread ID changes, providing the new thread ID as a String or null if empty.
+ * @param onWidgetRendered An optional callback that is triggered when the widget has finished rendering
  * @param content The content to be displayed above the bottom sheet.
  */
 @Composable
@@ -134,6 +137,7 @@ fun AlbyWidgetScreen(
     testVersion: String? = null,
     testDescription: String? = null,
     onThreadIdChanged: ((String?) -> Unit)? = null,
+    onWidgetRendered: (() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
     val bottomSheetState =
@@ -145,7 +149,7 @@ fun AlbyWidgetScreen(
     val coroutineScope = rememberCoroutineScope()
 
     val jsInterface =
-        AlbyWidgetWebViewInterface(coroutineScope, bottomSheetState, isLoading, isLoadingText, onThreadIdChanged)
+        AlbyWidgetWebViewInterface(coroutineScope, bottomSheetState, isLoading, isLoadingText, onThreadIdChanged, onWidgetRendered)
 
     val finalBottomOffset: Dp = bottomOffset ?: 0.dp;
 
@@ -206,6 +210,7 @@ fun AlbyWidgetScreen(
  * @param testVersion A unique identifier for the version associated with the widget.
  * @param testDescription A unique identifier for the description associated with the widget.
  * @param onThreadIdChanged An optional callback that is triggered when the thread ID changes, providing the new thread ID as a String or null if empty.
+ * @param onWidgetRendered An optional callback that is triggered when the widget has finished rendering
  */
 @Composable
 fun AlbyInlineWidget(
@@ -218,13 +223,12 @@ fun AlbyInlineWidget(
     testId: String? = null,
     testVersion: String? = null,
     testDescription: String? = null,
-    onThreadIdChanged: ((String?) -> Unit)? = null
+    onThreadIdChanged: ((String?) -> Unit)? = null,
+    onWidgetRendered: (() -> Unit)? = null
 ) {
-    val isLoading = remember { mutableStateOf(false) }
-    val isLoadingText = remember { mutableStateOf("") }
     val coroutineScope = rememberCoroutineScope()
     val jsInterface =
-        AlbyWidgetWebViewInterface(coroutineScope, null, isLoading, isLoadingText, onThreadIdChanged)
+        AlbyWidgetWebViewInterface(coroutineScope, null, null, null, onThreadIdChanged, onWidgetRendered)
     val webViewReference = remember { mutableStateOf<WebView?>(null) }
 
     Box(modifier = modifier) {

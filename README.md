@@ -98,6 +98,10 @@ AlbyWidgetScreen(
     testDescription = "your-test-description",
     onThreadIdChanged = { newThreadId -> 
         // Handle thread ID changes
+    },
+    onWidgetRendered = {
+        // Called when the widget has finished rendering
+        println("Widget is ready!")
     }
 ) {
     YourScreenGoesHere()
@@ -141,6 +145,10 @@ AlbyInlineWidget(
     testDescription = "your-test-description",
     onThreadIdChanged = { newThreadId -> 
         // Handle thread ID changes
+    },
+    onWidgetRendered = {
+        // Called when the widget has finished rendering
+        println("Widget is ready!")
     }
 )
 ```
