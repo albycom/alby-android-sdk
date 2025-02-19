@@ -81,7 +81,7 @@ Note: This scenario is rare and typically only needed if you're building a multi
 
 ## Managing WebView Data
 
-The Alby Widget is built on WebView technology. You can clear all Alby-related data (cookies, cache, localStorage) using:
+You can clear all Alby-related data (cookies, cache, localStorage) using:
 
 ```kotlin
 // Clear all Alby data - this will reset user state
