@@ -1,5 +1,9 @@
 package com.alby.widget
 
+import android.content.Context
+import android.content.Intent
+import android.os.Build
+import android.os.Process
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import androidx.compose.foundation.Image
@@ -52,6 +56,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -62,6 +67,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+
 
 class AlbyWidgetWebViewInterface(
     private val coroutineScope: CoroutineScope,
@@ -112,7 +118,6 @@ class AlbyWidgetWebViewInterface(
 /**
  * A Composable function that displays the alby Widget within a bottom sheet.
  *
- * @param brandId A unique identifier for the brand to be displayed in the widget.
  * @param productId A unique identifier for the product associated with the widget.
  * @param widgetId A unique identifier for the id associated with the widget.
  * @param variantId An optional parameter representing a specific product variant to be displayed.
@@ -127,7 +132,6 @@ class AlbyWidgetWebViewInterface(
  */
 @Composable
 fun AlbyWidgetScreen(
-    brandId: String,
     productId: String,
     widgetId: String? = null,
     variantId: String? = null,
@@ -149,7 +153,14 @@ fun AlbyWidgetScreen(
     val coroutineScope = rememberCoroutineScope()
 
     val jsInterface =
-        AlbyWidgetWebViewInterface(coroutineScope, bottomSheetState, isLoading, isLoadingText, onThreadIdChanged, onWidgetRendered)
+        AlbyWidgetWebViewInterface(
+            coroutineScope,
+            bottomSheetState,
+            isLoading,
+            isLoadingText,
+            onThreadIdChanged,
+            onWidgetRendered
+        )
 
     val finalBottomOffset: Dp = bottomOffset ?: 0.dp;
 
@@ -168,7 +179,6 @@ fun AlbyWidgetScreen(
                 bottomSheetState,
                 webViewReference,
                 jsInterface,
-                brandId,
                 productId,
                 widgetId,
                 variantId,
@@ -201,7 +211,6 @@ fun AlbyWidgetScreen(
  *
  * @param modifier Allows external components to apply styling, such as padding or alignment,
  * to the widget. Defaults to an empty [Modifier].
- * @param brandId A unique identifier for the brand to be displayed in the widget.
  * @param productId A unique identifier for the product associated with the widget.
  * @param widgetId A unique identifier for the id associated with the widget.
  * @param variantId An optional parameter representing a specific product variant to be displayed.
@@ -215,7 +224,6 @@ fun AlbyWidgetScreen(
 @Composable
 fun AlbyInlineWidget(
     modifier: Modifier = Modifier,
-    brandId: String,
     productId: String,
     widgetId: String? = null,
     variantId: String? = null,
@@ -228,14 +236,20 @@ fun AlbyInlineWidget(
 ) {
     val coroutineScope = rememberCoroutineScope()
     val jsInterface =
-        AlbyWidgetWebViewInterface(coroutineScope, null, null, null, onThreadIdChanged, onWidgetRendered)
+        AlbyWidgetWebViewInterface(
+            coroutineScope,
+            null,
+            null,
+            null,
+            onThreadIdChanged,
+            onWidgetRendered
+        )
     val webViewReference = remember { mutableStateOf<WebView?>(null) }
 
     Box(modifier = modifier) {
         WebViewScreen(
             jsInterface,
             webViewReference,
-            brandId,
             productId,
             widgetId,
             variantId,
@@ -254,7 +268,6 @@ fun BottomSheet(
     state: HideableBottomSheetState,
     webViewReference: MutableState<WebView?>,
     webViewInterface: AlbyWidgetWebViewInterface,
-    brandId: String,
     productId: String,
     widgetId: String? = null,
     variantId: String? = null,
@@ -336,7 +349,6 @@ fun BottomSheet(
                     WebViewScreen(
                         webViewInterface,
                         webViewReference,
-                        brandId,
                         productId,
                         widgetId,
                         variantId,
@@ -345,7 +357,7 @@ fun BottomSheet(
                         testId,
                         testVersion,
                         testDescription,
-                        focusable = false
+                        focusable = false,
                     )
                     webViewReference.value?.setBackgroundColor(Color.White.toArgb())
                 }

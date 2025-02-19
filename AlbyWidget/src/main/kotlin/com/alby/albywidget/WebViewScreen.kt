@@ -17,7 +17,6 @@ import androidx.compose.ui.viewinterop.AndroidView
 fun WebViewScreen(
     javascriptInterface: Any,
     webViewReference: MutableState<WebView?>,
-    brandId: String,
     productId: String,
     widgetId: String? = null,
     variantId: String? = null,
@@ -28,6 +27,8 @@ fun WebViewScreen(
     testDescription: String? = null,
     focusable: Boolean = false
 ) {
+    val brandId = AlbySDK.brandId ?: throw IllegalStateException("AlbySDK not initialized")
+
     AndroidView(
         factory = { context ->
             WebView(context).apply {

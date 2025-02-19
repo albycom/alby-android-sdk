@@ -17,12 +17,14 @@ import org.json.JSONObject
 import java.net.URLEncoder
 
 object AlbySDK {
-    private var brandId: String? = null
+    private var _brandId: String? = null
+    val brandId: String? get() = _brandId 
     private var isInitialized = false
     private val client = OkHttpClient()
     private const val analyticsEndpoint: String =
         "https://eks.alby.com/analytics-service/v1/api/track"
-
+    private const val ALBY_CDN_URL = "https://cdn.alby.com"
+    private var context: Context? = null
     // Initialization
     @SuppressLint("SetJavaScriptEnabled")
     fun initialize(brandId: String, context: Context) {
@@ -31,7 +33,9 @@ object AlbySDK {
             return
         }
 
-        this.brandId = brandId
+        this._brandId = brandId
+        this.context = context.applicationContext  // Store application context
+
 
         // Create and load alby js in the background
         val webView = WebView(context)
@@ -149,6 +153,38 @@ object AlbySDK {
 
         if (brandId == null) {
             throw IllegalStateException("Missing brandId. Ensure `initialize` is called and brandId is set.")
+        }
+    }
+
+    /**
+     * Clears WebView data (cookies, cache, localStorage) specifically for Alby CDN.
+     * This won't affect other domains' data in the WebView.
+     */
+    fun clearAlbyData(context: Context? = null) {
+        val contextToUse = context ?: this.context ?: throw IllegalStateException("Context not found. Please provide a valid context.")
+
+        CookieManager.getInstance().let { cookieManager ->
+            // Remove cookies for Alby CDN domain
+            cookieManager.getCookie(ALBY_CDN_URL)?.split(";")?.forEach { cookie ->
+                val cookieName = cookie.split("=")[0].trim()
+                cookieManager.setCookie(ALBY_CDN_URL, "$cookieName=; expires=Thu, 01 Jan 1970 00:00:00 GMT")
+            }
+            cookieManager.flush()
+        }
+
+        // Create temporary WebView to clear cache and localStorage
+        WebView(contextToUse).apply {
+            settings.javaScriptEnabled = true  // Required for localStorage access
+            clearCache(true)
+            
+            // Clear localStorage for our domain
+            loadUrl(ALBY_CDN_URL)
+            evaluateJavascript("""
+                localStorage.clear();
+                sessionStorage.clear();
+            """.trimIndent(), null)
+            
+            destroy()
         }
     }
 }

@@ -8,12 +8,12 @@ AlbyWidget for Android requires a SDK 23+ and Jetpack Compose.
 
 ### Gradle Kotlin
 ```
-implementation("com.alby.widget:alby-widget:0.4.0")
+implementation("com.alby.widget:alby-widget:0.5.0")
 ```
 
 ### Gradle
 ```
-implementation 'com.alby.widget:alby-widget:0.4.0'
+implementation 'com.alby.widget:alby-widget:0.5.0'
 ```
 
 ### Apache Maven
@@ -21,7 +21,7 @@ implementation 'com.alby.widget:alby-widget:0.4.0'
 <dependency>
     <groupId>com.alby.widget</groupId>
     <artifactId>alby-widget</artifactId>
-    <version>0.4.0</version>
+    <version>0.5.0</version>
 </dependency>
 ```
 
@@ -59,6 +59,54 @@ class YourApplication : Application() {
     }
 }
 ```
+
+## WebView Storage and Multiple Brand IDs
+
+The Alby SDK is built on WebViews. By default, WebView storage (cookies, localStorage, etc.) is shared across all Brand IDs. For most implementations, this is not an issue as apps typically use a single Brand ID.
+
+If you have the uncommon need to use multiple Brand IDs simultaneously in the same app and require isolated storage states (for example, during development or in a multi-tenant application):
+
+```kotlin
+// In your Application or Activity
+if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+    WebView.setDataDirectorySuffix(brandId) // Or any other partition strategy
+}
+
+// Then initialize the SDK
+AlbySDK.initialize(brandId)
+```
+
+Note: This scenario is rare and typically only needed if you're building a multi-tenant application or testing different Brand IDs in development. Most applications will use a single Brand ID in production.
+
+
+## Managing WebView Data
+
+The Alby Widget is built on WebView technology. You can clear all Alby-related data (cookies, cache, localStorage) using:
+
+```kotlin
+// Clear all Alby data - this will reset user state
+AlbySDK.clearAlbyData(context)  // If SDK not initialized
+// or
+AlbySDK.clearAlbyData()         // If SDK is initialized
+
+// Example in Activity:
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        
+        // Clear data before initialization if needed
+        AlbySDK.clearAlbyData(this)
+        
+        // Initialize SDK
+        AlbySDK.initialize("your-brand-id", this)
+        
+        // Later, can clear without context
+        AlbySDK.clearAlbyData()
+    }
+}
+```
+
+**Note:** Clearing data will reset all user state including chat history, preferences, and any stored information. Use this when you want to completely reset the widget's state or when switching users.
 
 ## Components
 

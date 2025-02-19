@@ -60,7 +60,11 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        AlbySDK.initialize("c8866843-ce73-496e-b14e-73be14e6450a", this)
+        val brandId = "7a54fcd4-db3a-4a32-9b44-17f047fbc41d"
+        val productId = "your-product-id"
+
+        AlbySDK.clearAlbyData(this)
+        AlbySDK.initialize(brandId, this)
 
         setContent {
             // setting up the individual tabs
@@ -104,9 +108,7 @@ class MainActivity : ComponentActivity() {
                         NavHost(navController = navController, startDestination = homeTab.title) {
                             composable(homeTab.title) {
                                 AlbyWidgetScreen(
-                                    brandId = "c8866843-ce73-496e-b14e-73be14e6450a",
-                                    productId = "100037",
-                                    widgetId = "15b194d9-2641-41f2-a0d7-e258d73d0709",
+                                    productId = productId,
                                     bottomOffset = bottomPadding,
                                     onWidgetRendered = {
                                         // Called when the widget has finished rendering
@@ -129,9 +131,8 @@ class MainActivity : ComponentActivity() {
                                     verticalArrangement = Arrangement.spacedBy(16.dp),
                                 ) {
                                     AlbyInlineWidget(
-                                        brandId = "c8866843-ce73-496e-b14e-73be14e6450a",
                                         modifier = Modifier.padding(24.dp),
-                                        productId = "100037",
+                                        productId = productId,
                                         onThreadIdChanged = { newThreadId ->
                                             // Handle the new thread ID here
                                             println("Thread ID changed to: $newThreadId")
