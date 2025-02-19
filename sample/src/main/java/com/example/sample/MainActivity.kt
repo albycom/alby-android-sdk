@@ -60,7 +60,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val brandId = "7a54fcd4-db3a-4a32-9b44-17f047fbc41d"
+        val brandId = "your-brand-id"
         val productId = "your-product-id"
 
         AlbySDK.clearAlbyData(this)
