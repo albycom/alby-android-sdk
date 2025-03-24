@@ -1,13 +1,10 @@
 package com.alby.widget
 
-import android.content.Context
-import android.content.Intent
-import android.os.Build
-import android.os.Process
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
@@ -56,7 +53,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -469,23 +465,24 @@ fun BottomSheetInputText(
                 enabled = !isLoading.value,
                 interactionSource = interactionSource,
                 container = {
-                    OutlinedTextFieldDefaults.Container(
-                        enabled = !isLoading.value,
-                        isError = false,
-                        interactionSource = interactionSource,
-                        shape = RoundedCornerShape(12.dp),
-                        colors = colors,
-                        modifier = Modifier.fillMaxSize(),
-                        focusedBorderThickness = 1.dp,
-                        unfocusedBorderThickness = 1.dp
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                color = if (!isLoading.value) 
+                                    Color.White
+                                else Color(229, 231, 235),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            .border(
+                                width = 1.dp,
+                                color = if (isFocused) 
+                                    Color(107, 114, 128)
+                                else Color(107, 114, 128),
+                                shape = RoundedCornerShape(12.dp)
+                            )
                     )
-                },
-                contentPadding = OutlinedTextFieldDefaults.contentPadding(
-                    top = 7.dp,
-                    bottom = 7.dp,
-                    start = 12.dp,
-                    end = 12.dp
-                ),
+                }
             )
         }
 

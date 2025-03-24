@@ -80,7 +80,7 @@ fun HideableBottomSheetScaffold(
                         .roundToInt()
                     IntOffset(x = 0, y = yOffset)
                 }
-                .anchoredDraggable(
+                .anchoredDraggable<HideableBottomSheetValue>(
                     state = bottomSheetState.draggableState,
                     orientation = Orientation.Vertical
                 )
