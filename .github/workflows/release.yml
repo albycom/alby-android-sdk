@@ -33,7 +33,7 @@ jobs:
   Upload2Maven:
     environment: "production"
 
-#    needs: Build
+    needs: Build
 
     runs-on: ubuntu-latest
     timeout-minutes: 30
