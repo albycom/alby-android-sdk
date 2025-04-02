@@ -5,6 +5,4 @@ plugins {
     alias(libs.plugins.jetbrains.kotlin.android) apply false
     alias(libs.plugins.kotlin.parcelize) apply false
     alias(libs.plugins.compose.compiler) apply false
-    id("maven-publish") apply false
-    id("signing") apply false
 }
