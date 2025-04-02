@@ -21,7 +21,7 @@ composeBom = "2023.03.00"
 uiToolingPreview = "1.4.3"
 window = "1.1.0"
 composeUi = "1.4.3"
-okhttp = "4.12.0"
+okhttp = "4.11.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
