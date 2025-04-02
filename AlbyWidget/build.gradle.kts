@@ -2,7 +2,8 @@ plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.compose.compiler)
-    id("com.vanniktech.maven.publish") version "0.21.0"
+    id("maven-publish")
+    id("signing")
 }
 
 android {
@@ -58,4 +59,35 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
 
     implementation(libs.okhttp)
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            create<MavenPublication>("maven") {
+                groupId = findProperty("GROUP") as String
+                artifactId = findProperty("POM_ARTIFACT_ID") as String
+                version = findProperty("VERSION_NAME") as String
+
+                afterEvaluate {
+                    from(components["release"])
+                }
+            }
+        }
+
+        repositories {
+            maven {
+                name = "mavenCentral"
+                url = uri("https://oss.sonatype.org/service/local/staging/deploy/maven2/")
+                credentials {
+                    username = findProperty("mavenCentralUsername") as String
+                    password = findProperty("mavenCentralPassword") as String
+                }
+            }
+        }
+    }
+
+    signing {
+        sign(publishing.publications["maven"])
+    }
 }
