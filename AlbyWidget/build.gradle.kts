@@ -89,5 +89,10 @@ afterEvaluate {
 
     signing {
         sign(publishing.publications["maven"])
+        useInMemoryPgpKeys(
+            findProperty("signingInMemoryKeyId") as String,
+            findProperty("signingInMemoryKey") as String,
+            findProperty("signingInMemoryKeyPassword") as String
+        )
     }
 }
