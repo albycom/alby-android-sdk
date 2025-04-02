@@ -6,13 +6,6 @@ on:
     tags:
       - '*'
 
-env:
-  ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.ORG_GRADLE_PROJECT_MAVENCENTRALUSERNAME }}
-  ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.ORG_GRADLE_PROJECT_MAVENCENTRALPASSWORD }}
-  ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.ORG_GRADLE_PROJECT_SIGNINGINMEMORYKEY }}
-  ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.ORG_GRADLE_PROJECT_SIGNINGINMEMORYKEYID }}
-  ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.ORG_GRADLE_PROJECT_SIGNINGINMEMORYKEYPASSWORD }}
-
 jobs:
   Build:
     # Skip build if head commit contains 'skip ci'
@@ -35,7 +28,13 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Build samples
-        run: ./gradlew :sample:assemble
+        run: |
+          ./gradlew :sample:assemble \
+            -PmavenCentralUsername=${{ secrets.ORG_GRADLE_PROJECT_MAVENCENTRALUSERNAME }} \
+            -PmavenCentralPassword=${{ secrets.ORG_GRADLE_PROJECT_MAVENCENTRALPASSWORD }} \
+            -PsigningInMemoryKey=${{ secrets.ORG_GRADLE_PROJECT_SIGNINGINMEMORYKEY }} \
+            -PsigningInMemoryKeyId=${{ secrets.ORG_GRADLE_PROJECT_SIGNINGINMEMORYKEYID }} \
+            -PsigningInMemoryKeyPassword=${{ secrets.ORG_GRADLE_PROJECT_SIGNINGINMEMORYKEYPASSWORD }}
 
   Upload2Maven:
     environment: "production"
@@ -59,5 +58,17 @@ jobs:
 
       - name: Upload library
         run: |
-          ./gradlew :AlbyWidget:publishAllPublicationsToMavenCentralRepository --no-configuration-cache
-          ./gradlew :AlbyWidget:closeAndReleaseRepository --no-configuration-cache
+          ./gradlew :AlbyWidget:publishAllPublicationsToMavenCentralRepository \
+            -PmavenCentralUsername=${{ secrets.ORG_GRADLE_PROJECT_MAVENCENTRALUSERNAME }} \
+            -PmavenCentralPassword=${{ secrets.ORG_GRADLE_PROJECT_MAVENCENTRALPASSWORD }} \
+            -PsigningInMemoryKey=${{ secrets.ORG_GRADLE_PROJECT_SIGNINGINMEMORYKEY }} \
+            -PsigningInMemoryKeyId=${{ secrets.ORG_GRADLE_PROJECT_SIGNINGINMEMORYKEYID }} \
+            -PsigningInMemoryKeyPassword=${{ secrets.ORG_GRADLE_PROJECT_SIGNINGINMEMORYKEYPASSWORD }} \
+            --no-configuration-cache
+          ./gradlew :AlbyWidget:closeAndReleaseRepository \
+            -PmavenCentralUsername=${{ secrets.ORG_GRADLE_PROJECT_MAVENCENTRALUSERNAME }} \
+            -PmavenCentralPassword=${{ secrets.ORG_GRADLE_PROJECT_MAVENCENTRALPASSWORD }} \
+            -PsigningInMemoryKey=${{ secrets.ORG_GRADLE_PROJECT_SIGNINGINMEMORYKEY }} \
+            -PsigningInMemoryKeyId=${{ secrets.ORG_GRADLE_PROJECT_SIGNINGINMEMORYKEYID }} \
+            -PsigningInMemoryKeyPassword=${{ secrets.ORG_GRADLE_PROJECT_SIGNINGINMEMORYKEYPASSWORD }} \
+            --no-configuration-cache

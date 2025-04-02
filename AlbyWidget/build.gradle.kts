@@ -80,8 +80,8 @@ afterEvaluate {
                 name = "mavenCentral"
                 url = uri("https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/")
                 credentials {
-                    username = (findProperty("ORG_GRADLE_PROJECT_mavenCentralUsername")?.toString() ?: error("Missing ORG_GRADLE_PROJECT_mavenCentralUsername")) as String
-                    password = (findProperty("ORG_GRADLE_PROJECT_mavenCentralPassword")?.toString() ?: error("Missing ORG_GRADLE_PROJECT_mavenCentralPassword")) as String
+                    username = (findProperty("mavenCentralUsername")?.toString() ?: error("Missing mavenCentralUsername")) as String
+                    password = (findProperty("mavenCentralPassword")?.toString() ?: error("Missing mavenCentralPassword")) as String
                 }
             }
         }
@@ -90,9 +90,9 @@ afterEvaluate {
     signing {
         sign(publishing.publications["maven"])
         useInMemoryPgpKeys(
-            (findProperty("ORG_GRADLE_PROJECT_signingInMemoryKeyId")?.toString() ?: error("Missing ORG_GRADLE_PROJECT_signingInMemoryKeyId")) as String,
-            (findProperty("ORG_GRADLE_PROJECT_signingInMemoryKey")?.toString() ?: error("Missing ORG_GRADLE_PROJECT_signingInMemoryKey")) as String,
-            (findProperty("ORG_GRADLE_PROJECT_signingInMemoryKeyPassword")?.toString() ?: error("Missing ORG_GRADLE_PROJECT_signingInMemoryKeyPassword")) as String
+            (findProperty("signingInMemoryKeyId")?.toString() ?: error("Missing signingInMemoryKeyId")) as String,
+            (findProperty("signingInMemoryKey")?.toString() ?: error("Missing signingInMemoryKey")) as String,
+            (findProperty("signingInMemoryKeyPassword")?.toString() ?: error("Missing signingInMemoryKeyPassword")) as String
         )
     }
 }
