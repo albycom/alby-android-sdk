@@ -80,8 +80,8 @@ afterEvaluate {
                 name = "mavenCentral"
                 url = uri("https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/")
                 credentials {
-                    username = findProperty("ORG_GRADLE_PROJECT_mavenCentralUsername") as String
-                    password = findProperty("ORG_GRADLE_PROJECT_mavenCentralPassword") as String
+                    username = System.getenv("ORG_GRADLE_PROJECT_mavenCentralUsername")
+                    password = System.getenv("ORG_GRADLE_PROJECT_mavenCentralPassword")
                 }
             }
         }
@@ -90,9 +90,9 @@ afterEvaluate {
     signing {
         sign(publishing.publications["maven"])
         useInMemoryPgpKeys(
-            findProperty("ORG_GRADLE_PROJECT_signingInMemoryKeyId") as String,
-            findProperty("ORG_GRADLE_PROJECT_signingInMemoryKey") as String,
-            findProperty("ORG_GRADLE_PROJECT_signingInMemoryKeyPassword") as String
+            System.getenv("ORG_GRADLE_PROJECT_signingInMemoryKeyId"),
+            System.getenv("ORG_GRADLE_PROJECT_signingInMemoryKey"),
+            System.getenv("ORG_GRADLE_PROJECT_signingInMemoryKeyPassword")
         )
     }
 }
