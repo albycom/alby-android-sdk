@@ -78,7 +78,7 @@ afterEvaluate {
         repositories {
             maven {
                 name = "mavenCentral"
-                url = uri("https://oss.sonatype.org/service/local/staging/deploy/maven2/")
+                url = uri("https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/")
                 credentials {
                     username = findProperty("mavenCentralUsername") as String
                     password = findProperty("mavenCentralPassword") as String
