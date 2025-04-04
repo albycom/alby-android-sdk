@@ -1,11 +1,8 @@
-import java.util.Base64
-
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.compose.compiler)
-    id("maven-publish")
-    id("signing")
+    id("com.vanniktech.maven.publish") version "0.21.0"
 }
 
 android {
@@ -64,46 +61,8 @@ dependencies {
 }
 
 afterEvaluate {
-    publishing {
-        publications {
-            create<MavenPublication>("maven") {
-                groupId = findProperty("GROUP") as String
-                artifactId = findProperty("POM_ARTIFACT_ID") as String
-                version = findProperty("VERSION_NAME") as String
-
-                afterEvaluate {
-                    from(components["release"])
-                }
-            }
-        }
-
-        repositories {
-            maven {
-                name = "mavenCentral"
-                url = uri("https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/")
-                
-                val tokenId = findProperty("mavenCentralUsername")?.toString() ?: return@maven
-                val tokenSecret = findProperty("mavenCentralPassword")?.toString() ?: return@maven
-                val encoded = Base64.getEncoder().encodeToString("$tokenId:$tokenSecret".toByteArray())
-
-                credentials(HttpHeaderCredentials::class) {
-                    name = "Authorization"
-                    value = "Basic $encoded"
-                }
-
-                authentication {
-                    create<HttpHeaderAuthentication>("header")
-                }
-            }
-        }
-    }
-
-    signing {
-        sign(publishing.publications["maven"])
-        useInMemoryPgpKeys(
-            (findProperty("signingInMemoryKeyId")?.toString() ?: error("Missing signingInMemoryKeyId")) as String,
-            (findProperty("signingInMemoryKey")?.toString() ?: error("Missing signingInMemoryKey")) as String,
-            (findProperty("signingInMemoryKeyPassword")?.toString() ?: error("Missing signingInMemoryKeyPassword")) as String
-        )
+    mavenPublishing {
+        publishToMavenCentral()
+        signAllPublications()
     }
 }
