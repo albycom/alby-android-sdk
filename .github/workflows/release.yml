@@ -65,5 +65,5 @@ jobs:
 
       - name: Upload library
         run: |
-          ./gradlew :AlbyWidget:publishMavenPublicationToMavenCentralRepository --no-configuration-cache --info
+          ./gradlew :AlbyWidget:publishAllPublicationsToMavenCentralRepository --no-configuration-cache --info
           ./gradlew :AlbyWidget:closeAndReleaseRepository --no-configuration-cache --info
