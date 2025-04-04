@@ -1,3 +1,5 @@
+import java.util.Base64
+
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.jetbrains.kotlin.android)
@@ -79,23 +81,29 @@ afterEvaluate {
             maven {
                 name = "mavenCentral"
                 url = uri("https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/")
-                credentials {
-                    username = (findProperty("mavenCentralUsername")?.toString() ?: error("Missing mavenCentralUsername")) as String
-                    password = (findProperty("mavenCentralPassword")?.toString() ?: error("Missing mavenCentralPassword")) as String
+                
+                val tokenId = findProperty("mavenCentralUsername")?.toString() ?: return@maven
+                val tokenSecret = findProperty("mavenCentralPassword")?.toString() ?: return@maven
+                val encoded = Base64.getEncoder().encodeToString("$tokenId:$tokenSecret".toByteArray())
+
+                credentials(HttpHeaderCredentials::class) {
+                    name = "Authorization"
+                    value = "Basic $encoded"
                 }
+
                 authentication {
-                    create<BasicAuthentication>("basic")
+                    create<HttpHeaderAuthentication>("header")
                 }
             }
         }
     }
 
     signing {
+        val keyId = findProperty("signingInMemoryKeyId")?.toString() ?: return@signing
+        val key = findProperty("signingInMemoryKey")?.toString() ?: return@signing
+        val keyPassword = findProperty("signingInMemoryKeyPassword")?.toString() ?: return@signing
+        
         sign(publishing.publications["maven"])
-        useInMemoryPgpKeys(
-            (findProperty("signingInMemoryKeyId")?.toString() ?: error("Missing signingInMemoryKeyId")) as String,
-            (findProperty("signingInMemoryKey")?.toString() ?: error("Missing signingInMemoryKey")) as String,
-            (findProperty("signingInMemoryKeyPassword")?.toString() ?: error("Missing signingInMemoryKeyPassword")) as String
-        )
+        useInMemoryPgpKeys(keyId, key, keyPassword)
     }
 }
