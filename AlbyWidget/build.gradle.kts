@@ -2,7 +2,8 @@ plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.compose.compiler)
-    id("com.vanniktech.maven.publish") version "0.25.3"
+    `maven-publish`
+    signing
 }
 
 android {
@@ -58,4 +59,53 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
 
     implementation(libs.okhttp)
+}
+
+signing {
+    val signingKey = System.getenv("ORG_GRADLE_PROJECT_signingInMemoryKey")
+    val signingPassword = System.getenv("ORG_GRADLE_PROJECT_signingInMemoryKeyPassword")
+    val signingKeyId = System.getenv("ORG_GRADLE_PROJECT_signingInMemoryKeyId")
+    
+    if (signingKey != null && signingPassword != null && signingKeyId != null) {
+        useInMemoryPgpKeys(signingKeyId, signingKey, signingPassword)
+        sign(publishing.publications)
+    }
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            create<MavenPublication>("release") {
+                from(components["release"])
+                groupId = project.findProperty("GROUP") as String
+                artifactId = project.findProperty("POM_ARTIFACT_ID") as String
+                version = project.findProperty("VERSION_NAME") as String
+
+                pom {
+                    name.set(project.findProperty("POM_NAME") as String)
+                    description.set(project.findProperty("POM_DESCRIPTION") as String)
+                    url.set(project.findProperty("POM_URL") as String)
+                    licenses {
+                        license {
+                            name.set(project.findProperty("POM_LICENSE_NAME") as String)
+                            url.set(project.findProperty("POM_LICENSE_URL") as String)
+                            distribution.set(project.findProperty("POM_LICENSE_DIST") as String)
+                        }
+                    }
+                    developers {
+                        developer {
+                            id.set(project.findProperty("POM_DEVELOPER_ID") as String)
+                            name.set(project.findProperty("POM_DEVELOPER_NAME") as String)
+                            url.set(project.findProperty("POM_DEVELOPER_URL") as String)
+                        }
+                    }
+                    scm {
+                        url.set(project.findProperty("POM_SCM_URL") as String)
+                        connection.set(project.findProperty("POM_SCM_CONNECTION") as String)
+                        developerConnection.set(project.findProperty("POM_SCM_DEV_CONNECTION") as String)
+                    }
+                }
+            }
+        }
+    }
 }
