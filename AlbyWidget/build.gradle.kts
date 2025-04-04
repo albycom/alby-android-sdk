@@ -79,7 +79,7 @@ afterEvaluate {
             maven {
                 name = "mavenCentral"
                 url = uri("https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/")
-                credentials {
+                credentials(PasswordCredentials::class) {
                     username = (findProperty("mavenCentralUsername")?.toString() ?: error("Missing mavenCentralUsername")) as String
                     password = (findProperty("mavenCentralPassword")?.toString() ?: error("Missing mavenCentralPassword")) as String
                 }
