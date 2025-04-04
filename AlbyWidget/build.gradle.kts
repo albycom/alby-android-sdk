@@ -83,6 +83,9 @@ afterEvaluate {
                     username = (findProperty("mavenCentralUsername")?.toString() ?: error("Missing mavenCentralUsername")) as String
                     password = (findProperty("mavenCentralPassword")?.toString() ?: error("Missing mavenCentralPassword")) as String
                 }
+                authentication {
+                    create<BasicAuthentication>("basic")
+                }
             }
         }
     }
