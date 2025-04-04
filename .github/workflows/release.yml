@@ -21,6 +21,7 @@ jobs:
       ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.ORG_GRADLE_PROJECT_SIGNINGINMEMORYKEY }}
       ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.ORG_GRADLE_PROJECT_SIGNINGINMEMORYKEYID }}
       ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.ORG_GRADLE_PROJECT_SIGNINGINMEMORYKEYPASSWORD }}
+      ORG_GRADLE_PROJECT_SONATYPE_HOST: DEFAULT
 
     steps:
       - uses: actions/checkout@v4
@@ -50,6 +51,7 @@ jobs:
       ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.ORG_GRADLE_PROJECT_SIGNINGINMEMORYKEY }}
       ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.ORG_GRADLE_PROJECT_SIGNINGINMEMORYKEYID }}
       ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.ORG_GRADLE_PROJECT_SIGNINGINMEMORYKEYPASSWORD }}
+      ORG_GRADLE_PROJECT_SONATYPE_HOST: DEFAULT
 
     steps:
       - uses: actions/checkout@v4
@@ -65,5 +67,5 @@ jobs:
 
       - name: Upload library
         run: |
-          ./gradlew :AlbyWidget:publishAllPublicationsToMavenCentralRepository --no-configuration-cache --info
-          ./gradlew :AlbyWidget:closeAndReleaseRepository --no-configuration-cache --info
+          ./gradlew :AlbyWidget:publishAllPublicationsToMavenCentralRepository --no-configuration-cache --info --stacktrace
+          ./gradlew :AlbyWidget:closeAndReleaseRepository --no-configuration-cache --info --stacktrace
