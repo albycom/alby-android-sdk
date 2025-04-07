@@ -67,4 +67,4 @@ jobs:
 
       - name: Upload library
         run: |
-          ./gradlew publishToSonatype closeAndReleaseSonatypeStagingRepository --no-configuration-cache --info --stacktrace
+          ./gradlew publishToSonatype closeAndReleaseSonatypeStagingRepository --no-configuration-cache --info --stacktrace --scan --debug
