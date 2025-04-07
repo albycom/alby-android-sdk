@@ -12,4 +12,5 @@ nexusPublishing {
     repositories {
         sonatype()
     }
+    packageGroup.set("com.alby.widget")
 }
