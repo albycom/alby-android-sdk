@@ -68,7 +68,8 @@ signing {
     
     if (signingKey != null && signingPassword != null && signingKeyId != null) {
         useInMemoryPgpKeys(signingKeyId, signingKey, signingPassword)
-        sign(publishing.publications)
+    } else {
+        logger.warn("Signing credentials not found. Artifacts will not be signed.")
     }
 }
 
@@ -107,5 +108,10 @@ afterEvaluate {
                 }
             }
         }
+    }
+
+    // Sign after publications are created
+    if (System.getenv("ORG_GRADLE_PROJECT_signingInMemoryKey") != null) {
+        signing.sign(publishing.publications["release"])
     }
 }
