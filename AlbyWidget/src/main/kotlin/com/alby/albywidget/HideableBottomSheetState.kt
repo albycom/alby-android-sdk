@@ -51,9 +51,10 @@ class HideableBottomSheetState(
 ) {
     val draggableState = AnchoredDraggableState(
         initialValue = initialValue,
+        snapAnimationSpec = animationSpec,
+        decayAnimationSpec = decayAnimationSpec,
         positionalThreshold = HideableBottomSheetDefaults.PositionalThreshold,
         velocityThreshold = HideableBottomSheetDefaults.VelocityThreshold,
-        animationSpec = animationSpec,
         confirmValueChange = confirmValueChange
     )
 
@@ -162,8 +163,8 @@ class HideableBottomSheetState(
 
     fun updateAnchors(layoutHeight: Int, sheetHeight: Int, density: Density) {
         val maxDragEndPoint = layoutHeight - with(density) { 32.dp.toPx() }
-        val newAnchors = DraggableAnchors<HideableBottomSheetValue> {
-            HideableBottomSheetValue.values()
+        val newAnchors = DraggableAnchors {
+            HideableBottomSheetValue.entries
                 .forEach { anchor ->
                     val fractionatedMaxDragEndPoint =
                         maxDragEndPoint * anchor.draggableSpaceFraction
