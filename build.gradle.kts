@@ -5,5 +5,5 @@ plugins {
     alias(libs.plugins.jetbrains.kotlin.android) apply false
     alias(libs.plugins.kotlin.parcelize) apply false
     alias(libs.plugins.compose.compiler) apply false
-    id("com.vanniktech.maven.publish") version "0.25.3" apply false
+    id("com.vanniktech.maven.publish") version "0.29.0" apply false
 }
