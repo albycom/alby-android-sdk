@@ -22,7 +22,7 @@ object AlbySDK {
     private var isInitialized = false
     private val client = OkHttpClient()
     private const val analyticsEndpoint: String =
-        "https://eks.alby.com/analytics-service/v1/api/track"
+        "https://app.alby.net/analytics-service/v1/api/track"
     private const val ALBY_CDN_URL = "https://cdn.alby.com"
     private var context: Context? = null
     // Initialization
