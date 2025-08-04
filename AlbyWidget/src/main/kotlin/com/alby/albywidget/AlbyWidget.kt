@@ -92,7 +92,7 @@ class AlbyWidgetWebViewInterface(
 
                     message == "widget-empty" -> {
                         bottomSheetState?.hide()
-                        onWidgetRendered?.invoke()
+                        onWidgetEmpty?.invoke()
                     }
 
                     contains("streaming-message") -> {
