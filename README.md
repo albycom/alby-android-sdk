@@ -21,7 +21,7 @@ implementation 'com.alby.widget:alby-widget:0.6.2'
 <dependency>
     <groupId>com.alby.widget</groupId>
     <artifactId>alby-widget</artifactId>
-    <version>0.6.0</version>
+    <version>0.6.2</version>
 </dependency>
 ```
 
