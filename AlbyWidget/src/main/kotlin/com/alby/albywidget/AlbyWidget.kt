@@ -1,9 +1,5 @@
 package com.alby.widget
 
-import android.content.Context
-import android.content.Intent
-import android.os.Build
-import android.os.Process
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import androidx.compose.foundation.Image
@@ -56,7 +52,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -75,7 +70,8 @@ class AlbyWidgetWebViewInterface(
     private val isLoading: MutableState<Boolean>? = null,
     private val isLoadingText: MutableState<String>? = null,
     private val onThreadIdChanged: ((String?) -> Unit)? = null,
-    private val onWidgetRendered: (() -> Unit)? = null
+    private val onWidgetRendered: (() -> Unit)? = null,
+    private val onWidgetEmpty: (() -> Unit)? = null
 ) {
 
     @JavascriptInterface
@@ -91,6 +87,11 @@ class AlbyWidgetWebViewInterface(
 
                     message == "widget-rendered" -> {
                         bottomSheetState?.show()
+                        onWidgetRendered?.invoke()
+                    }
+
+                    message == "widget-empty" -> {
+                        bottomSheetState?.hide()
                         onWidgetRendered?.invoke()
                     }
 
@@ -128,6 +129,7 @@ class AlbyWidgetWebViewInterface(
  * @param testDescription A unique identifier for the description associated with the widget.
  * @param onThreadIdChanged An optional callback that is triggered when the thread ID changes, providing the new thread ID as a String or null if empty.
  * @param onWidgetRendered An optional callback that is triggered when the widget has finished rendering
+ * @param onWidgetEmpty An optional callback that is triggered when the widget is unable to render
  * @param content The content to be displayed above the bottom sheet.
  */
 @Composable
@@ -142,6 +144,7 @@ fun AlbyWidgetScreen(
     testDescription: String? = null,
     onThreadIdChanged: ((String?) -> Unit)? = null,
     onWidgetRendered: (() -> Unit)? = null,
+    onWidgetEmpty: (() -> Unit)? =null,
     content: @Composable () -> Unit,
 ) {
     val bottomSheetState =
@@ -159,7 +162,8 @@ fun AlbyWidgetScreen(
             isLoading,
             isLoadingText,
             onThreadIdChanged,
-            onWidgetRendered
+            onWidgetRendered,
+            onWidgetEmpty
         )
 
     val finalBottomOffset: Dp = bottomOffset ?: 0.dp;
@@ -220,6 +224,7 @@ fun AlbyWidgetScreen(
  * @param testDescription A unique identifier for the description associated with the widget.
  * @param onThreadIdChanged An optional callback that is triggered when the thread ID changes, providing the new thread ID as a String or null if empty.
  * @param onWidgetRendered An optional callback that is triggered when the widget has finished rendering
+ * @param onWidgetEmpty An optional callback that is triggered when the widget is unable to render
  */
 @Composable
 fun AlbyInlineWidget(
@@ -232,7 +237,8 @@ fun AlbyInlineWidget(
     testVersion: String? = null,
     testDescription: String? = null,
     onThreadIdChanged: ((String?) -> Unit)? = null,
-    onWidgetRendered: (() -> Unit)? = null
+    onWidgetRendered: (() -> Unit)? = null,
+    onWidgetEmpty: (() -> Unit)? = null
 ) {
     val coroutineScope = rememberCoroutineScope()
     val jsInterface =
@@ -242,7 +248,8 @@ fun AlbyInlineWidget(
             null,
             null,
             onThreadIdChanged,
-            onWidgetRendered
+            onWidgetRendered,
+            onWidgetEmpty
         )
     val webViewReference = remember { mutableStateOf<WebView?>(null) }
 
