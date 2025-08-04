@@ -8,12 +8,12 @@ AlbyWidget for Android requires a SDK 23+ and Jetpack Compose.
 
 ### Gradle Kotlin
 ```
-implementation("com.alby.widget:alby-widget:0.6.2")
+implementation("com.alby.widget:alby-widget:0.6.3")
 ```
 
 ### Gradle
 ```
-implementation 'com.alby.widget:alby-widget:0.6.2'
+implementation 'com.alby.widget:alby-widget:0.6.3'
 ```
 
 ### Apache Maven
@@ -21,7 +21,7 @@ implementation 'com.alby.widget:alby-widget:0.6.2'
 <dependency>
     <groupId>com.alby.widget</groupId>
     <artifactId>alby-widget</artifactId>
-    <version>0.6.2</version>
+    <version>0.6.3</version>
 </dependency>
 ```
 
@@ -151,6 +151,10 @@ AlbyWidgetScreen(
         // Called when the widget has finished rendering
         println("Widget is ready!")
     }
+    onWidgetEmpty = {
+        // Called when the widget is unable to render
+        println("Widget is unable to render")
+    }
 ) {
     YourScreenGoesHere()
 }
@@ -197,6 +201,10 @@ AlbyInlineWidget(
     onWidgetRendered = {
         // Called when the widget has finished rendering
         println("Widget is ready!")
+    }
+    onWidgetEmpty = {
+        // Called when the widget is unable to render
+        println("Widget is unable to render")
     }
 )
 ```
