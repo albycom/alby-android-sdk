@@ -2,9 +2,12 @@ package com.alby.widget
 
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.anchoredDraggable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -19,7 +22,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -270,6 +272,7 @@ fun AlbyInlineWidget(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun BottomSheet(
     state: HideableBottomSheetState,
@@ -295,7 +298,13 @@ fun BottomSheet(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(
-            modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter
+            modifier = Modifier
+                .fillMaxWidth()
+                .anchoredDraggable(
+                    state = state.draggableState,
+                    orientation = Orientation.Vertical,
+                ),
+            contentAlignment = Alignment.TopCenter
         ) {
             Icon(
                 Icons.Filled.DragHandle,
@@ -351,24 +360,21 @@ fun BottomSheet(
                 .fillMaxWidth(),
             contentAlignment = Alignment.TopStart
         ) {
-            LazyColumn {
-                item {
-                    WebViewScreen(
-                        webViewInterface,
-                        webViewReference,
-                        productId,
-                        widgetId,
-                        variantId,
-                        component = "alby-mobile-generative-qa",
-                        threadId,
-                        testId,
-                        testVersion,
-                        testDescription,
-                        focusable = false,
-                    )
-                    webViewReference.value?.setBackgroundColor(Color.White.toArgb())
-                }
-            }
+            WebViewScreen(
+                webViewInterface,
+                webViewReference,
+                productId,
+                widgetId,
+                variantId,
+                component = "alby-mobile-generative-qa",
+                threadId,
+                testId,
+                testVersion,
+                testDescription,
+                focusable = false,
+                modifier = Modifier.fillMaxSize(),
+            )
+            webViewReference.value?.setBackgroundColor(Color.White.toArgb())
         }
 
     }

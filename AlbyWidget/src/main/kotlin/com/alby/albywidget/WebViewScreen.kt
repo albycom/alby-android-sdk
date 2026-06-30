@@ -10,6 +10,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 
 @SuppressLint("SetJavaScriptEnabled", "JavascriptInterface")
@@ -25,11 +26,13 @@ fun WebViewScreen(
     testId: String? = null,
     testVersion: String? = null,
     testDescription: String? = null,
-    focusable: Boolean = false
+    focusable: Boolean = false,
+    modifier: Modifier = Modifier,
 ) {
     val brandId = AlbySDK.brandId ?: throw IllegalStateException("AlbySDK not initialized")
 
     AndroidView(
+        modifier = modifier,
         factory = { context ->
             WebView(context).apply {
                 settings.apply {

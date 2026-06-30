@@ -2,8 +2,6 @@ package com.alby.widget
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.anchoredDraggable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.WindowInsets
@@ -80,10 +78,6 @@ fun HideableBottomSheetScaffold(
                         .roundToInt()
                     IntOffset(x = 0, y = yOffset)
                 }
-                .anchoredDraggable(
-                    state = bottomSheetState.draggableState,
-                    orientation = Orientation.Vertical
-                )
                 .doubleShadowDrop(
                     RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
                     firstOffset = (-1).dp,
