@@ -132,7 +132,6 @@ class AlbyWidgetWebViewInterface(
  * @param onThreadIdChanged An optional callback that is triggered when the thread ID changes, providing the new thread ID as a String or null if empty.
  * @param onWidgetRendered An optional callback that is triggered when the widget has finished rendering
  * @param onWidgetEmpty An optional callback that is triggered when the widget is unable to render
- * @param handoffScrollToParent When true, leftover scroll at the chat top/bottom is passed to the host page. Defaults to false.
  * @param content The content to be displayed above the bottom sheet.
  */
 @Composable
@@ -148,7 +147,6 @@ fun AlbyWidgetScreen(
     onThreadIdChanged: ((String?) -> Unit)? = null,
     onWidgetRendered: (() -> Unit)? = null,
     onWidgetEmpty: (() -> Unit)? =null,
-    handoffScrollToParent: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val bottomSheetState =
@@ -194,8 +192,7 @@ fun AlbyWidgetScreen(
                 testId,
                 testVersion,
                 testDescription,
-                finalBottomOffset,
-                handoffScrollToParent
+                finalBottomOffset
             )
         },
         bottomSheetStickyItem = {
@@ -230,7 +227,6 @@ fun AlbyWidgetScreen(
  * @param onThreadIdChanged An optional callback that is triggered when the thread ID changes, providing the new thread ID as a String or null if empty.
  * @param onWidgetRendered An optional callback that is triggered when the widget has finished rendering
  * @param onWidgetEmpty An optional callback that is triggered when the widget is unable to render
- * @param handoffScrollToParent When true, leftover scroll at the chat top/bottom is passed to the host page. Defaults to false.
  */
 @Composable
 fun AlbyInlineWidget(
@@ -245,7 +241,6 @@ fun AlbyInlineWidget(
     onThreadIdChanged: ((String?) -> Unit)? = null,
     onWidgetRendered: (() -> Unit)? = null,
     onWidgetEmpty: (() -> Unit)? = null,
-    handoffScrollToParent: Boolean = false,
 ) {
     val coroutineScope = rememberCoroutineScope()
     val jsInterface =
@@ -274,7 +269,6 @@ fun AlbyInlineWidget(
             testDescription,
             focusable = true,
             modifier = Modifier.fillMaxSize(),
-            handoffScrollToParent = handoffScrollToParent,
         )
     }
 }
@@ -293,7 +287,6 @@ fun BottomSheet(
     testVersion: String? = null,
     testDescription: String? = null,
     bottomOffset: Dp,
-    handoffScrollToParent: Boolean = false,
 ) {
     val configuration = LocalConfiguration.current
     val heightDP = configuration.screenHeightDp
@@ -381,7 +374,6 @@ fun BottomSheet(
                 testDescription,
                 focusable = false,
                 modifier = Modifier.fillMaxSize(),
-                handoffScrollToParent = handoffScrollToParent,
             )
             webViewReference.value?.setBackgroundColor(Color.White.toArgb())
         }

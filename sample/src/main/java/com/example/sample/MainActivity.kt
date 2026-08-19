@@ -2,6 +2,7 @@ package com.example.sample
 
 import android.annotation.SuppressLint
 import android.os.Bundle
+import android.view.ViewGroup
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
@@ -40,8 +41,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.widget.NestedScrollView
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -226,6 +231,38 @@ fun ProductPageWithInlineWidget(
     widgetId: String,
     contentPadding: PaddingValues
 ) {
+    AndroidView(
+        modifier = Modifier.fillMaxSize(),
+        factory = { context ->
+            NestedScrollView(context).apply {
+                isFillViewport = true
+                addView(
+                    ComposeView(context).apply {
+                        setViewCompositionStrategy(
+                            ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed
+                        )
+                        setContent {
+                            AlbyWidgetTheme {
+                                ProductPageBody(productId, widgetId, contentPadding)
+                            }
+                        }
+                    },
+                    ViewGroup.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                    )
+                )
+            }
+        }
+    )
+}
+
+@Composable
+private fun ProductPageBody(
+    productId: String,
+    widgetId: String,
+    contentPadding: PaddingValues
+) {
     val similarItems = listOf(
         "Anybody Tall Lush Jersey Long Sleeve Top",
         "Goodnight Kiss Ladies Merry Henley PJ Set",
@@ -234,85 +271,73 @@ fun ProductPageWithInlineWidget(
         "Stretch Denim Straight Leg Jean"
     )
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = contentPadding,
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        item {
-            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                Text("Product $productId", style = MaterialTheme.typography.titleLarge)
-                Text(
-                    "Ask two questions so the chat overflows, then drag inside the widget. With handoffScrollToParent, leftover movement at the edges scrolls this page.",
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
-            }
-        }
-        item {
+        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+            Text("Product $productId", style = MaterialTheme.typography.titleLarge)
             Text(
-                "Garment Specification",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(horizontal = 16.dp)
+                "Inline widget in a scrolling page. If the chat has no overflow, dragging it scrolls this page. Once it overflows, the chat keeps the drag.",
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(top = 8.dp)
             )
         }
-        items(8) { index ->
+        Text(
+            "Garment Specification",
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(horizontal = 16.dp)
+        )
+        repeat(8) { index ->
             Text(
                 "Spec detail line ${index + 1}: fabric, fit, and care information.",
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
         }
-        item {
-            AlbyInlineWidget(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(420.dp)
-                    .padding(horizontal = 8.dp),
-                productId = productId,
-                widgetId = widgetId,
-                onThreadIdChanged = { newThreadId ->
-                    println("Thread ID changed to: $newThreadId")
-                },
-                onWidgetRendered = {
-                    println("Widget is ready!")
-                },
-                handoffScrollToParent = true,
-            )
-        }
-        item {
+        AlbyInlineWidget(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(420.dp)
+                .padding(horizontal = 8.dp),
+            productId = productId,
+            widgetId = widgetId,
+            onThreadIdChanged = { newThreadId ->
+                println("Thread ID changed to: $newThreadId")
+            },
+            onWidgetRendered = {
+                println("Widget is ready!")
+            },
+        )
+        Text(
+            "Shop Similar Items",
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        )
+        similarItems.forEach { item ->
             Text(
-                "Shop Similar Items",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-            )
-        }
-        items(similarItems.size) { index ->
-            Text(
-                similarItems[index],
+                item,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 12.dp)
             )
         }
-        items(12) { index ->
+        repeat(12) { index ->
             Text(
                 "More product content ${index + 1}",
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )
         }
-        item {
-            Button(
-                onClick = {},
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-            ) {
-                Text("Add to Cart")
-            }
+        Button(
+            onClick = {},
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Text("Add to Cart")
         }
-        item {
-            Spacer(modifier = Modifier.height(24.dp))
-        }
+        Spacer(modifier = Modifier.height(24.dp))
     }
 }
 

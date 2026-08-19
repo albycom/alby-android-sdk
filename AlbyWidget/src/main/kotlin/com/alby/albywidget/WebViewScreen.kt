@@ -27,7 +27,6 @@ fun WebViewScreen(
     testDescription: String? = null,
     focusable: Boolean = false,
     modifier: Modifier = Modifier,
-    handoffScrollToParent: Boolean = false,
 ) {
     val brandId = AlbySDK.brandId ?: throw IllegalStateException("AlbySDK not initialized")
 
@@ -35,7 +34,6 @@ fun WebViewScreen(
         modifier = modifier,
         factory = { context ->
             NestedWebView(context).apply {
-                this.handoffScrollToParent = handoffScrollToParent
                 settings.apply {
                     javaScriptEnabled = true
                     domStorageEnabled = true
@@ -54,14 +52,12 @@ fun WebViewScreen(
                     }
 
                     override fun onPageFinished(view: WebView?, url: String?) {
-                        // Inject JavaScript to remove padding and margin from the body and html elements
-                        this@apply.loadUrl(
-                            "javascript:(function() { " +
-                                    "document.body.style.margin='0'; " +
-                                    "document.body.style.padding='0'; " +
-                                    "document.documentElement.style.margin='0'; " +
-                                    "document.documentElement.style.padding='0'; " +
-                                    "})()"
+                        view?.evaluateJavascript(
+                            "document.body.style.margin='0';" +
+                                "document.body.style.padding='0';" +
+                                "document.documentElement.style.margin='0';" +
+                                "document.documentElement.style.padding='0';",
+                            null
                         )
                         (view as? NestedWebView)?.installScrollDetection()
                     }
@@ -78,7 +74,6 @@ fun WebViewScreen(
             }
         },
         update = { webView ->
-            (webView as NestedWebView).handoffScrollToParent = handoffScrollToParent
             var widgetUrl =
                 "https://cdn.alby.com/assets/alby_widget.html?brandId=${brandId}&productId=${productId}&component=${component}"
             if (variantId != null) {
@@ -100,7 +95,9 @@ fun WebViewScreen(
                 widgetUrl += "&testDescription=${testDescription}"
             }
 
-            webView.loadUrl(widgetUrl)
+            if (webView.url != widgetUrl) {
+                webView.loadUrl(widgetUrl)
+            }
         }
     )
 }

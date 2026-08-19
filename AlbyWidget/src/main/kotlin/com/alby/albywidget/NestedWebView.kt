@@ -3,119 +3,123 @@ package com.alby.widget
 import android.annotation.SuppressLint
 import android.content.Context
 import android.view.MotionEvent
+import android.view.View
 import android.view.ViewConfiguration
 import android.view.ViewParent
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
-import androidx.core.view.ViewCompat
+import android.widget.AbsListView
+import android.widget.ScrollView
+import androidx.core.widget.NestedScrollView
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
 /**
- * Chat content usually scrolls in a CSS overflow container, not the WebView document.
- * By default the widget keeps vertical drags. When [handoffScrollToParent] is true,
- * leftover movement at the chat edges is passed to the host scroller.
+ * Keep vertical drags on the widget when the chat or the WebView document can
+ * still scroll (the document often moves the input into view). A new gesture
+ * that starts at the top/bottom of both, or on an empty chat with no document
+ * overflow, is passed to the host page. Reaching an edge mid-gesture does not
+ * hand off.
  */
-@SuppressLint("SetJavaScriptEnabled", "JavascriptInterface")
+@SuppressLint("JavascriptInterface")
 internal class NestedWebView(context: Context) : WebView(context) {
     private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
-    private val scrollConsumed = IntArray(2)
-    private val scrollOffset = IntArray(2)
 
-    @Volatile private var jsReady = false
-    @Volatile private var canScrollUpJs = false
-    @Volatile private var canScrollDownJs = false
+    @Volatile private var hasOverflow = true
+    @Volatile private var canScrollUp = true
+    @Volatile private var canScrollDown = true
 
-    private var startY = 0f
-    private var lastY = 0f
+    private var gestureLocked = false
+    private var passThisGesture = false
     private var handedOffToParent = false
-    private var scrollBridgeInstalled = false
+    private var startY = 0f
+    private var lastRawY = 0f
 
-    var handoffScrollToParent: Boolean = false
-        set(value) {
-            field = value
-            isNestedScrollingEnabled = value
-            if (value) ensureScrollBridge()
-        }
+    init {
+        addJavascriptInterface(ScrollBridge(), JS_INTERFACE)
+    }
 
     fun installScrollDetection() {
-        jsReady = false
-        canScrollUpJs = false
-        canScrollDownJs = false
-        if (!handoffScrollToParent) return
-        ensureScrollBridge()
-        evaluateJavascript(SCROLL_DETECTION_JS, null)
+        evaluateJavascript(SCROLLABLE_JS, null)
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 startY = event.y
-                lastY = event.y
+                lastRawY = event.rawY
+                gestureLocked = false
+                passThisGesture = false
                 handedOffToParent = false
                 requestParentsDisallowIntercept(true)
-                if (handoffScrollToParent) {
-                    ViewCompat.startNestedScroll(this, ViewCompat.SCROLL_AXIS_VERTICAL)
-                    reportScrollState(event)
-                }
             }
 
             MotionEvent.ACTION_MOVE -> {
-                if (handoffScrollToParent) {
-                    reportScrollState(event)
-                    val dy = lastY - event.y
-                    lastY = event.y
-                    if (handedOffToParent || shouldHandoff(dy, event.y)) {
+                val dy = lastRawY - event.rawY
+                lastRawY = event.rawY
+                if (!gestureLocked && abs(event.y - startY) > touchSlop) {
+                    gestureLocked = true
+                    passThisGesture = shouldPassToParent(dy)
+                }
+                if (gestureLocked && passThisGesture) {
+                    if (!handedOffToParent) {
                         handedOffToParent = true
-                        requestParentsDisallowIntercept(false)
-                        dispatchUnconsumedToParent(dy.roundToInt())
-                        return true
+                        cancelWebViewGesture(event)
                     }
+                    passToParent(dy.roundToInt())
+                    requestParentsDisallowIntercept(true)
+                    return true
                 }
                 requestParentsDisallowIntercept(true)
             }
 
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 requestParentsDisallowIntercept(false)
-                if (handoffScrollToParent) ViewCompat.stopNestedScroll(this)
+                if (handedOffToParent) return true
             }
         }
         return super.onTouchEvent(event)
     }
 
-    private fun shouldHandoff(dy: Float, y: Float): Boolean {
-        if (abs(y - startY) <= touchSlop || dy == 0f) return false
-        if (!jsReady) return false
-        val canScroll = if (dy > 0) {
-            canScrollDownJs || canScrollVertically(1)
-        } else {
-            canScrollUpJs || canScrollVertically(-1)
-        }
-        return !canScroll
+    private fun shouldPassToParent(dy: Float): Boolean {
+        if (dy == 0f) return false
+        if (documentCanScroll(dy)) return false
+        if (!hasOverflow) return true
+        return if (dy > 0) !canScrollDown else !canScrollUp
     }
 
-    private fun dispatchUnconsumedToParent(dy: Int) {
+    private fun documentCanScroll(dy: Float): Boolean {
+        val range = computeVerticalScrollRange()
+        val extent = computeVerticalScrollExtent()
+        val offset = computeVerticalScrollOffset()
+        val maxOffset = range - extent
+        if (maxOffset <= DOCUMENT_SCROLL_SLOP) return false
+        return if (dy > 0) offset < maxOffset - DOCUMENT_SCROLL_SLOP else offset > DOCUMENT_SCROLL_SLOP
+    }
+
+    private fun cancelWebViewGesture(event: MotionEvent) {
+        val cancel = MotionEvent.obtain(event)
+        cancel.action = MotionEvent.ACTION_CANCEL
+        super.onTouchEvent(cancel)
+        cancel.recycle()
+        evaluateJavascript("window.getSelection&&window.getSelection().removeAllRanges()", null)
+    }
+
+    private fun passToParent(dy: Int) {
         if (dy == 0) return
-        scrollConsumed.fill(0)
-        ViewCompat.dispatchNestedPreScroll(this, 0, dy, scrollConsumed, scrollOffset)
-        val unconsumed = dy - scrollConsumed[1]
-        if (unconsumed != 0) {
-            ViewCompat.dispatchNestedScroll(this, 0, 0, 0, unconsumed, scrollOffset)
+        findViewScroller()?.scrollBy(0, dy)
+    }
+
+    private fun findViewScroller(): View? {
+        var ancestor = parent
+        while (ancestor != null) {
+            when (ancestor) {
+                is NestedScrollView, is ScrollView, is AbsListView -> return ancestor as View
+                is View -> if (ancestor.javaClass.name.contains("RecyclerView")) return ancestor
+            }
+            ancestor = ancestor.parent
         }
-    }
-
-    private fun reportScrollState(event: MotionEvent) {
-        val density = resources.displayMetrics.density
-        evaluateJavascript(
-            "window.__albyReportScroll&&window.__albyReportScroll(${event.x / density},${event.y / density})",
-            null
-        )
-    }
-
-    private fun ensureScrollBridge() {
-        if (scrollBridgeInstalled) return
-        addJavascriptInterface(ScrollBridge(), JS_INTERFACE)
-        scrollBridgeInstalled = true
+        return null
     }
 
     private fun requestParentsDisallowIntercept(disallow: Boolean) {
@@ -128,40 +132,62 @@ internal class NestedWebView(context: Context) : WebView(context) {
 
     inner class ScrollBridge {
         @JavascriptInterface
-        fun update(canScrollUp: Boolean, canScrollDown: Boolean) {
-            canScrollUpJs = canScrollUp
-            canScrollDownJs = canScrollDown
-            jsReady = true
+        fun update(hasOverflowScroller: Boolean, scrollUp: Boolean, scrollDown: Boolean) {
+            hasOverflow = hasOverflowScroller
+            canScrollUp = scrollUp
+            canScrollDown = scrollDown
         }
     }
 
     private companion object {
         const val JS_INTERFACE = "albyNestedScroll"
+        const val DOCUMENT_SCROLL_SLOP = 8
 
-        const val SCROLL_DETECTION_JS = """
+        const val SCROLLABLE_JS = """
             (function() {
-              window.__albyReportScroll = function(x, y) {
+              function scrollerInfo(el) {
+                if (!el || el.nodeType !== 1) return null;
+                if (el === document.documentElement || el === document.body) return null;
+                var oy;
+                try { oy = getComputedStyle(el).overflowY; } catch (err) { return null; }
+                if (oy !== 'auto' && oy !== 'scroll' && oy !== 'overlay') return null;
+                if (el.scrollHeight <= el.clientHeight + 1) return null;
+                return {
+                  up: el.scrollTop > 1,
+                  down: el.scrollTop < el.scrollHeight - el.clientHeight - 1
+                };
+              }
+              function documentInfo() {
+                var el = document.scrollingElement || document.documentElement;
+                if (!el || el.scrollHeight <= el.clientHeight + 8) return null;
+                return {
+                  up: el.scrollTop > 8,
+                  down: el.scrollTop < el.scrollHeight - el.clientHeight - 8
+                };
+              }
+              function report(e) {
                 if (!window.albyNestedScroll) return;
-                var el = document.elementFromPoint(x, y);
-                while (el && el.shadowRoot) {
-                  var inner = el.shadowRoot.elementFromPoint(x, y);
-                  if (!inner || inner === el) break;
-                  el = inner;
-                }
-                var up = false, down = false;
-                while (el) {
-                  var oy = getComputedStyle(el).overflowY;
-                  var isRoot = el === document.scrollingElement ||
-                    el === document.documentElement || el === document.body;
-                  if ((isRoot || oy === 'auto' || oy === 'scroll' || oy === 'overlay') &&
-                      el.scrollHeight > el.clientHeight + 1) {
-                    up = up || el.scrollTop > 1;
-                    down = down || el.scrollTop < el.scrollHeight - el.clientHeight - 1;
+                var has = false, up = false, down = false;
+                if (e && e.composedPath) {
+                  var path = e.composedPath();
+                  for (var i = 0; i < path.length; i++) {
+                    var info = scrollerInfo(path[i]);
+                    if (info) {
+                      has = true;
+                      up = up || info.up;
+                      down = down || info.down;
+                    }
                   }
-                  el = el.parentElement || (el.getRootNode && el.getRootNode().host) || null;
                 }
-                window.albyNestedScroll.update(up, down);
-              };
+                var doc = documentInfo();
+                if (doc) {
+                  up = up || doc.up;
+                  down = down || doc.down;
+                }
+                window.albyNestedScroll.update(has, up, down);
+              }
+              document.addEventListener('touchstart', report, {capture: true, passive: true});
+              document.addEventListener('touchmove', report, {capture: true, passive: true});
             })();
         """
     }
