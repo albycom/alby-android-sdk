@@ -12,6 +12,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -240,7 +241,7 @@ fun AlbyInlineWidget(
     testDescription: String? = null,
     onThreadIdChanged: ((String?) -> Unit)? = null,
     onWidgetRendered: (() -> Unit)? = null,
-    onWidgetEmpty: (() -> Unit)? = null
+    onWidgetEmpty: (() -> Unit)? = null,
 ) {
     val coroutineScope = rememberCoroutineScope()
     val jsInterface =
@@ -255,7 +256,12 @@ fun AlbyInlineWidget(
         )
     val webViewReference = remember { mutableStateOf<WebView?>(null) }
 
-    Box(modifier = modifier) {
+    BoxWithConstraints(modifier = modifier) {
+        val webModifier = if (constraints.hasBoundedHeight) {
+            Modifier.fillMaxSize()
+        } else {
+            Modifier.fillMaxWidth()
+        }
         WebViewScreen(
             jsInterface,
             webViewReference,
@@ -267,7 +273,8 @@ fun AlbyInlineWidget(
             testId,
             testVersion,
             testDescription,
-            focusable = true
+            focusable = true,
+            modifier = webModifier,
         )
     }
 }
@@ -285,7 +292,7 @@ fun BottomSheet(
     testId: String? = null,
     testVersion: String? = null,
     testDescription: String? = null,
-    bottomOffset: Dp
+    bottomOffset: Dp,
 ) {
     val configuration = LocalConfiguration.current
     val heightDP = configuration.screenHeightDp

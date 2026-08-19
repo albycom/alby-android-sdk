@@ -8,12 +8,12 @@ AlbyWidget for Android requires a SDK 23+ and Jetpack Compose.
 
 ### Gradle Kotlin
 ```
-implementation("com.alby.widget:alby-widget:0.6.3")
+implementation("com.alby.widget:alby-widget:0.6.5")
 ```
 
 ### Gradle
 ```
-implementation 'com.alby.widget:alby-widget:0.6.3'
+implementation 'com.alby.widget:alby-widget:0.6.5'
 ```
 
 ### Apache Maven
@@ -21,7 +21,7 @@ implementation 'com.alby.widget:alby-widget:0.6.3'
 <dependency>
     <groupId>com.alby.widget</groupId>
     <artifactId>alby-widget</artifactId>
-    <version>0.6.3</version>
+    <version>0.6.5</version>
 </dependency>
 ```
 
@@ -208,6 +208,8 @@ AlbyInlineWidget(
     }
 )
 ```
+
+When `AlbyInlineWidget` is embedded in a vertically scrolling host (for example a product page `LazyColumn` or `RecyclerView`), the SDK keeps vertical drags on the widget so the chat can scroll. A new gesture that starts when the chat has no overflow, or is already at the top or bottom, is passed to the host page. Reaching an edge during a chat scroll does not hand off.
 
 ## Conversation Management
 Both `AlbyWidgetScreen` and `AlbyInlineWidget` support conversation persistence through thread IDs:
