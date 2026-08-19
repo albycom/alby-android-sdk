@@ -12,6 +12,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -255,7 +256,12 @@ fun AlbyInlineWidget(
         )
     val webViewReference = remember { mutableStateOf<WebView?>(null) }
 
-    Box(modifier = modifier) {
+    BoxWithConstraints(modifier = modifier) {
+        val webModifier = if (constraints.hasBoundedHeight) {
+            Modifier.fillMaxSize()
+        } else {
+            Modifier.fillMaxWidth()
+        }
         WebViewScreen(
             jsInterface,
             webViewReference,
@@ -268,7 +274,7 @@ fun AlbyInlineWidget(
             testVersion,
             testDescription,
             focusable = true,
-            modifier = Modifier.fillMaxSize(),
+            modifier = webModifier,
         )
     }
 }

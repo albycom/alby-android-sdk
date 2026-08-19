@@ -9,7 +9,13 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollDispatcher
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.viewinterop.AndroidView
 
 @SuppressLint("SetJavaScriptEnabled", "JavascriptInterface")
@@ -29,11 +35,24 @@ fun WebViewScreen(
     modifier: Modifier = Modifier,
 ) {
     val brandId = AlbySDK.brandId ?: throw IllegalStateException("AlbySDK not initialized")
+    val nestedDispatcher = remember { NestedScrollDispatcher() }
+    val nestedConnection = remember { object : NestedScrollConnection {} }
+
+    fun dispatchComposeScroll(dy: Int) {
+        if (dy == 0) return
+        val available = Offset(0f, dy.toFloat())
+        val consumed = nestedDispatcher.dispatchPreScroll(available, NestedScrollSource.Drag)
+        val remaining = available - consumed
+        if (remaining.y != 0f) {
+            nestedDispatcher.dispatchPostScroll(consumed, remaining, NestedScrollSource.Drag)
+        }
+    }
 
     AndroidView(
-        modifier = modifier,
+        modifier = modifier.nestedScroll(nestedConnection, nestedDispatcher),
         factory = { context ->
             NestedWebView(context).apply {
+                composeScrollBy = ::dispatchComposeScroll
                 settings.apply {
                     javaScriptEnabled = true
                     domStorageEnabled = true
@@ -74,6 +93,7 @@ fun WebViewScreen(
             }
         },
         update = { webView ->
+            (webView as NestedWebView).composeScrollBy = ::dispatchComposeScroll
             var widgetUrl =
                 "https://cdn.alby.com/assets/alby_widget.html?brandId=${brandId}&productId=${productId}&component=${component}"
             if (variantId != null) {

@@ -10,7 +10,6 @@ import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import android.widget.AbsListView
 import android.widget.ScrollView
-import androidx.core.view.ViewCompat
 import androidx.core.widget.NestedScrollView
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -36,6 +35,7 @@ internal class NestedWebView(context: Context) : WebView(context) {
     private var handedOffToParent = false
     private var startY = 0f
     private var lastRawY = 0f
+    var composeScrollBy: ((Int) -> Unit)? = null
 
     init {
         addJavascriptInterface(ScrollBridge(), JS_INTERFACE)
@@ -62,7 +62,7 @@ internal class NestedWebView(context: Context) : WebView(context) {
                 lastRawY = event.rawY
                 if (!gestureLocked && jsReported && abs(event.y - startY) > touchSlop) {
                     gestureLocked = true
-                    passThisGesture = shouldPassToParent(dy)
+                    passThisGesture = shouldPassToParent(startY - event.y)
                 }
                 if (gestureLocked && passThisGesture) {
                     if (!handedOffToParent) {
@@ -78,7 +78,6 @@ internal class NestedWebView(context: Context) : WebView(context) {
 
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 requestParentsDisallowIntercept(false)
-                ViewCompat.stopNestedScroll(this)
                 if (handedOffToParent) return true
             }
         }
@@ -116,14 +115,7 @@ internal class NestedWebView(context: Context) : WebView(context) {
             scroller.scrollBy(0, dy)
             return
         }
-        isNestedScrollingEnabled = true
-        ViewCompat.startNestedScroll(this, ViewCompat.SCROLL_AXIS_VERTICAL)
-        val consumed = IntArray(2)
-        ViewCompat.dispatchNestedPreScroll(this, 0, dy, consumed, null)
-        val unconsumed = dy - consumed[1]
-        if (unconsumed != 0) {
-            ViewCompat.dispatchNestedScroll(this, 0, consumed[1], 0, unconsumed, null)
-        }
+        composeScrollBy?.invoke(dy)
     }
 
     private fun findViewScroller(): View? {
@@ -162,6 +154,8 @@ internal class NestedWebView(context: Context) : WebView(context) {
 
         const val SCROLLABLE_JS = """
             (function() {
+              if (window.__albyScrollInstalled) return;
+              window.__albyScrollInstalled = true;
               function scrollerInfo(el) {
                 if (!el || el.nodeType !== 1) return null;
                 if (el === document.documentElement || el === document.body) return null;
