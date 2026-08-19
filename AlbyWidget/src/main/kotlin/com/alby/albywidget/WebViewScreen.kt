@@ -5,7 +5,6 @@ import android.content.Intent
 import android.net.Uri
 import android.util.Log
 import android.webkit.WebResourceRequest
-import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.runtime.Composable
@@ -28,13 +27,15 @@ fun WebViewScreen(
     testDescription: String? = null,
     focusable: Boolean = false,
     modifier: Modifier = Modifier,
+    handoffScrollToParent: Boolean = false,
 ) {
     val brandId = AlbySDK.brandId ?: throw IllegalStateException("AlbySDK not initialized")
 
     AndroidView(
         modifier = modifier,
         factory = { context ->
-            WebView(context).apply {
+            NestedWebView(context).apply {
+                this.handoffScrollToParent = handoffScrollToParent
                 settings.apply {
                     javaScriptEnabled = true
                     domStorageEnabled = true
@@ -62,6 +63,7 @@ fun WebViewScreen(
                                     "document.documentElement.style.padding='0'; " +
                                     "})()"
                         )
+                        (view as? NestedWebView)?.installScrollDetection()
                     }
                 }
                 isFocusable = focusable
@@ -76,6 +78,7 @@ fun WebViewScreen(
             }
         },
         update = { webView ->
+            (webView as NestedWebView).handoffScrollToParent = handoffScrollToParent
             var widgetUrl =
                 "https://cdn.alby.com/assets/alby_widget.html?brandId=${brandId}&productId=${productId}&component=${component}"
             if (variantId != null) {

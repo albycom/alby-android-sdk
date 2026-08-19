@@ -6,7 +6,11 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
@@ -62,6 +66,7 @@ class MainActivity : ComponentActivity() {
 
         val brandId = "your-brand-id"
         val productId = "your-product-id"
+        val widgetId = "your-widget-id"
 
         AlbySDK.clearAlbyData(this)
         AlbySDK.initialize(brandId, this)
@@ -109,6 +114,7 @@ class MainActivity : ComponentActivity() {
                             composable(homeTab.title) {
                                 AlbyWidgetScreen(
                                     productId = productId,
+                                    widgetId = widgetId,
                                     bottomOffset = bottomPadding,
                                     onWidgetRendered = {
                                         // Called when the widget has finished rendering
@@ -125,24 +131,11 @@ class MainActivity : ComponentActivity() {
 
                             }
                             composable(alertsTab.title) {
-                                Column(
-                                    modifier = Modifier
-                                        .padding(innerPadding),
-                                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                                ) {
-                                    AlbyInlineWidget(
-                                        modifier = Modifier.padding(24.dp),
-                                        productId = productId,
-                                        onThreadIdChanged = { newThreadId ->
-                                            // Handle the new thread ID here
-                                            println("Thread ID changed to: $newThreadId")
-                                        },
-                                        onWidgetRendered = {
-                                            // Called when the widget has finished rendering
-                                            println("Widget is ready!")
-                                        }
-                                    )
-                                }
+                                ProductPageWithInlineWidget(
+                                    productId = productId,
+                                    widgetId = widgetId,
+                                    contentPadding = innerPadding
+                                )
                             }
                             composable(settingsTab.title) {
                                 Text(settingsTab.title)
@@ -226,6 +219,102 @@ fun TabBarBadgeView(count: Int? = null) {
 }
 // end of the reusable components that can be copied over to any new projects
 // ----------------------------------------
+
+@Composable
+fun ProductPageWithInlineWidget(
+    productId: String,
+    widgetId: String,
+    contentPadding: PaddingValues
+) {
+    val similarItems = listOf(
+        "Anybody Tall Lush Jersey Long Sleeve Top",
+        "Goodnight Kiss Ladies Merry Henley PJ Set",
+        "MUK LUKS Tall Waffle Quarter Zip Set",
+        "Quilted Knit Jacket",
+        "Stretch Denim Straight Leg Jean"
+    )
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = contentPadding,
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item {
+            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                Text("Product $productId", style = MaterialTheme.typography.titleLarge)
+                Text(
+                    "Ask two questions so the chat overflows, then drag inside the widget. With handoffScrollToParent, leftover movement at the edges scrolls this page.",
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+            }
+        }
+        item {
+            Text(
+                "Garment Specification",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+        }
+        items(8) { index ->
+            Text(
+                "Spec detail line ${index + 1}: fabric, fit, and care information.",
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+        }
+        item {
+            AlbyInlineWidget(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(420.dp)
+                    .padding(horizontal = 8.dp),
+                productId = productId,
+                widgetId = widgetId,
+                onThreadIdChanged = { newThreadId ->
+                    println("Thread ID changed to: $newThreadId")
+                },
+                onWidgetRendered = {
+                    println("Widget is ready!")
+                },
+                handoffScrollToParent = true,
+            )
+        }
+        item {
+            Text(
+                "Shop Similar Items",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+        }
+        items(similarItems.size) { index ->
+            Text(
+                similarItems[index],
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+            )
+        }
+        items(12) { index ->
+            Text(
+                "More product content ${index + 1}",
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+        }
+        item {
+            Button(
+                onClick = {},
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Text("Add to Cart")
+            }
+        }
+        item {
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+    }
+}
 
 // This was added to demonstrate that we are infact changing views when we click a new tab
 @Composable
