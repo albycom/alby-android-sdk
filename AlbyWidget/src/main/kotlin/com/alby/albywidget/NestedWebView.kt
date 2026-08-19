@@ -10,6 +10,7 @@ import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import android.widget.AbsListView
 import android.widget.ScrollView
+import androidx.core.view.ViewCompat
 import androidx.core.widget.NestedScrollView
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -28,6 +29,7 @@ internal class NestedWebView(context: Context) : WebView(context) {
     @Volatile private var hasOverflow = true
     @Volatile private var canScrollUp = true
     @Volatile private var canScrollDown = true
+    @Volatile private var jsReported = false
 
     private var gestureLocked = false
     private var passThisGesture = false
@@ -40,6 +42,7 @@ internal class NestedWebView(context: Context) : WebView(context) {
     }
 
     fun installScrollDetection() {
+        jsReported = false
         evaluateJavascript(SCROLLABLE_JS, null)
     }
 
@@ -57,7 +60,7 @@ internal class NestedWebView(context: Context) : WebView(context) {
             MotionEvent.ACTION_MOVE -> {
                 val dy = lastRawY - event.rawY
                 lastRawY = event.rawY
-                if (!gestureLocked && abs(event.y - startY) > touchSlop) {
+                if (!gestureLocked && jsReported && abs(event.y - startY) > touchSlop) {
                     gestureLocked = true
                     passThisGesture = shouldPassToParent(dy)
                 }
@@ -75,6 +78,7 @@ internal class NestedWebView(context: Context) : WebView(context) {
 
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 requestParentsDisallowIntercept(false)
+                ViewCompat.stopNestedScroll(this)
                 if (handedOffToParent) return true
             }
         }
@@ -107,7 +111,19 @@ internal class NestedWebView(context: Context) : WebView(context) {
 
     private fun passToParent(dy: Int) {
         if (dy == 0) return
-        findViewScroller()?.scrollBy(0, dy)
+        val scroller = findViewScroller()
+        if (scroller != null) {
+            scroller.scrollBy(0, dy)
+            return
+        }
+        isNestedScrollingEnabled = true
+        ViewCompat.startNestedScroll(this, ViewCompat.SCROLL_AXIS_VERTICAL)
+        val consumed = IntArray(2)
+        ViewCompat.dispatchNestedPreScroll(this, 0, dy, consumed, null)
+        val unconsumed = dy - consumed[1]
+        if (unconsumed != 0) {
+            ViewCompat.dispatchNestedScroll(this, 0, consumed[1], 0, unconsumed, null)
+        }
     }
 
     private fun findViewScroller(): View? {
@@ -136,6 +152,7 @@ internal class NestedWebView(context: Context) : WebView(context) {
             hasOverflow = hasOverflowScroller
             canScrollUp = scrollUp
             canScrollDown = scrollDown
+            jsReported = true
         }
     }
 
