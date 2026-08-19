@@ -89,7 +89,6 @@ internal class NestedWebView(context: Context) : WebView(context) {
     private fun shouldPassToParent(dy: Float): Boolean {
         if (dy == 0f) return false
         if (documentCanScroll(dy)) return false
-        if (!hasOverflow) return true
         return if (dy > 0) !canScrollDown else !canScrollUp
     }
 
@@ -207,7 +206,8 @@ internal class NestedWebView(context: Context) : WebView(context) {
               }
               function report(e) {
                 if (!window.albyNestedScroll) return;
-                var has = false, up = false, down = false;
+                var all = collect(document);
+                var has = all.has, up = all.up, down = all.down;
                 if (e && e.composedPath) {
                   var path = e.composedPath();
                   for (var i = 0; i < path.length; i++) {
@@ -218,11 +218,6 @@ internal class NestedWebView(context: Context) : WebView(context) {
                       down = down || info.down;
                     }
                   }
-                } else {
-                  var all = collect(document);
-                  has = all.has;
-                  up = all.up;
-                  down = all.down;
                 }
                 var doc = documentInfo();
                 if (doc) {
