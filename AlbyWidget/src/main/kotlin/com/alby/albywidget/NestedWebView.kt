@@ -42,6 +42,10 @@ internal class NestedWebView(context: Context) : WebView(context) {
     }
 
     fun installScrollDetection() {
+        hasOverflow = true
+        canScrollUp = true
+        canScrollDown = true
+        jsReported = false
         evaluateJavascript(SCROLLABLE_JS, null)
     }
 
@@ -60,7 +64,7 @@ internal class NestedWebView(context: Context) : WebView(context) {
                 val dy = lastRawY - event.rawY
                 lastRawY = event.rawY
                 if (!jsReported) {
-                    requestParentsDisallowIntercept(false)
+                    requestParentsDisallowIntercept(true)
                 } else {
                     if (!gestureLocked && abs(event.y - startY) > touchSlop) {
                         gestureLocked = true
@@ -161,8 +165,6 @@ internal class NestedWebView(context: Context) : WebView(context) {
 
         const val SCROLLABLE_JS = """
             (function() {
-              if (window.__albyScrollInstalled) return;
-              window.__albyScrollInstalled = true;
               function scrollerInfo(el) {
                 if (!el || el.nodeType !== 1) return null;
                 if (el === document.documentElement || el === document.body) return null;
@@ -174,6 +176,26 @@ internal class NestedWebView(context: Context) : WebView(context) {
                   up: el.scrollTop > 1,
                   down: el.scrollTop < el.scrollHeight - el.clientHeight - 1
                 };
+              }
+              function collect(root) {
+                var has = false, up = false, down = false;
+                if (!root || !root.querySelectorAll) return {has: has, up: up, down: down};
+                var nodes = root.querySelectorAll('*');
+                for (var i = 0; i < nodes.length; i++) {
+                  var info = scrollerInfo(nodes[i]);
+                  if (info) {
+                    has = true;
+                    up = up || info.up;
+                    down = down || info.down;
+                  }
+                  if (nodes[i].shadowRoot) {
+                    var nested = collect(nodes[i].shadowRoot);
+                    has = has || nested.has;
+                    up = up || nested.up;
+                    down = down || nested.down;
+                  }
+                }
+                return {has: has, up: up, down: down};
               }
               function documentInfo() {
                 var el = document.scrollingElement || document.documentElement;
@@ -196,6 +218,11 @@ internal class NestedWebView(context: Context) : WebView(context) {
                       down = down || info.down;
                     }
                   }
+                } else {
+                  var all = collect(document);
+                  has = all.has;
+                  up = all.up;
+                  down = all.down;
                 }
                 var doc = documentInfo();
                 if (doc) {
@@ -204,8 +231,12 @@ internal class NestedWebView(context: Context) : WebView(context) {
                 }
                 window.albyNestedScroll.update(has, up, down);
               }
-              document.addEventListener('touchstart', report, {capture: true, passive: true});
-              document.addEventListener('touchmove', report, {capture: true, passive: true});
+              if (!window.__albyScrollInstalled) {
+                window.__albyScrollInstalled = true;
+                document.addEventListener('touchstart', report, {capture: true, passive: true});
+                document.addEventListener('touchmove', report, {capture: true, passive: true});
+              }
+              report();
             })();
         """
     }
