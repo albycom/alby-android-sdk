@@ -38,14 +38,17 @@ fun WebViewScreen(
     val nestedDispatcher = remember { NestedScrollDispatcher() }
     val nestedConnection = remember { object : NestedScrollConnection {} }
 
-    fun dispatchComposeScroll(dy: Int) {
-        if (dy == 0) return
+    fun dispatchComposeScroll(dy: Int): Float {
+        if (dy == 0) return 0f
         val available = Offset(0f, dy.toFloat())
-        val consumed = nestedDispatcher.dispatchPreScroll(available, NestedScrollSource.Drag)
-        val remaining = available - consumed
-        if (remaining.y != 0f) {
-            nestedDispatcher.dispatchPostScroll(consumed, remaining, NestedScrollSource.Drag)
+        val preConsumed = nestedDispatcher.dispatchPreScroll(available, NestedScrollSource.Drag)
+        val remaining = available - preConsumed
+        val unconsumed = if (remaining.y != 0f) {
+            nestedDispatcher.dispatchPostScroll(preConsumed, remaining, NestedScrollSource.Drag)
+        } else {
+            remaining
         }
+        return available.y - unconsumed.y
     }
 
     AndroidView(
@@ -94,32 +97,50 @@ fun WebViewScreen(
         },
         update = { webView ->
             (webView as NestedWebView).composeScrollBy = ::dispatchComposeScroll
-            var widgetUrl =
-                "https://cdn.alby.com/assets/alby_widget.html?brandId=${brandId}&productId=${productId}&component=${component}"
-            if (variantId != null) {
-                widgetUrl += "&variantId=${variantId}"
-            }
-            if (widgetId != null) {
-                widgetUrl += "&widgetId=${widgetId}"
-            }
-            if (threadId != null) {
-                widgetUrl += "&threadId=${threadId}"
-            }
-            if (testId != null) {
-                widgetUrl += "&testId=${testId}"
-            }
-            if (testVersion != null) {
-                widgetUrl += "&testVersion=${testVersion}"
-            }
-            if (testDescription != null) {
-                widgetUrl += "&testDescription=${testDescription}"
-            }
-
-            if (webView.url != widgetUrl) {
+            val widgetUrl = buildWidgetUrl(
+                brandId, productId, widgetId, variantId, component,
+                threadId, testId, testVersion, testDescription
+            )
+            if (!isSameWidgetUrl(webView.url, widgetUrl)) {
                 webView.loadUrl(widgetUrl)
             }
         }
     )
+}
+
+private fun buildWidgetUrl(
+    brandId: String,
+    productId: String,
+    widgetId: String?,
+    variantId: String?,
+    component: String?,
+    threadId: String?,
+    testId: String?,
+    testVersion: String?,
+    testDescription: String?,
+): String {
+    val builder = Uri.parse("https://cdn.alby.com/assets/alby_widget.html").buildUpon()
+        .appendQueryParameter("brandId", brandId)
+        .appendQueryParameter("productId", productId)
+        .appendQueryParameter("component", component ?: "alby-mobile-generative-qa")
+    if (variantId != null) builder.appendQueryParameter("variantId", variantId)
+    if (widgetId != null) builder.appendQueryParameter("widgetId", widgetId)
+    if (threadId != null) builder.appendQueryParameter("threadId", threadId)
+    if (testId != null) builder.appendQueryParameter("testId", testId)
+    if (testVersion != null) builder.appendQueryParameter("testVersion", testVersion)
+    if (testDescription != null) builder.appendQueryParameter("testDescription", testDescription)
+    return builder.build().toString()
+}
+
+private fun isSameWidgetUrl(loaded: String?, target: String): Boolean {
+    if (loaded.isNullOrEmpty()) return false
+    if (loaded == target) return true
+    val a = Uri.parse(loaded)
+    val b = Uri.parse(target)
+    if (a.scheme != b.scheme || a.authority != b.authority || a.path != b.path) return false
+    val names = a.queryParameterNames
+    if (names != b.queryParameterNames) return false
+    return names.all { a.getQueryParameter(it) == b.getQueryParameter(it) }
 }
 
 fun publishEvent(webView: WebView?, event: String) {

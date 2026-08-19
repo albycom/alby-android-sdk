@@ -35,14 +35,13 @@ internal class NestedWebView(context: Context) : WebView(context) {
     private var handedOffToParent = false
     private var startY = 0f
     private var lastRawY = 0f
-    var composeScrollBy: ((Int) -> Unit)? = null
+    var composeScrollBy: ((Int) -> Float)? = null
 
     init {
         addJavascriptInterface(ScrollBridge(), JS_INTERFACE)
     }
 
     fun installScrollDetection() {
-        jsReported = false
         evaluateJavascript(SCROLLABLE_JS, null)
     }
 
@@ -60,20 +59,19 @@ internal class NestedWebView(context: Context) : WebView(context) {
             MotionEvent.ACTION_MOVE -> {
                 val dy = lastRawY - event.rawY
                 lastRawY = event.rawY
-                if (!gestureLocked && jsReported && abs(event.y - startY) > touchSlop) {
-                    gestureLocked = true
-                    passThisGesture = shouldPassToParent(startY - event.y)
-                }
-                if (gestureLocked && passThisGesture) {
-                    if (!handedOffToParent) {
-                        handedOffToParent = true
-                        cancelWebViewGesture(event)
+                if (!jsReported) {
+                    requestParentsDisallowIntercept(false)
+                } else {
+                    if (!gestureLocked && abs(event.y - startY) > touchSlop) {
+                        gestureLocked = true
+                        passThisGesture = shouldPassToParent(startY - event.y)
                     }
-                    passToParent(dy.roundToInt())
+                    if (gestureLocked && passThisGesture && handOffToParent(dy.roundToInt(), event)) {
+                        requestParentsDisallowIntercept(true)
+                        return true
+                    }
                     requestParentsDisallowIntercept(true)
-                    return true
                 }
-                requestParentsDisallowIntercept(true)
             }
 
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
@@ -108,14 +106,23 @@ internal class NestedWebView(context: Context) : WebView(context) {
         evaluateJavascript("window.getSelection&&window.getSelection().removeAllRanges()", null)
     }
 
-    private fun passToParent(dy: Int) {
-        if (dy == 0) return
+    private fun handOffToParent(dy: Int, event: MotionEvent): Boolean {
         val scroller = findViewScroller()
         if (scroller != null) {
-            scroller.scrollBy(0, dy)
-            return
+            if (!handedOffToParent) {
+                handedOffToParent = true
+                cancelWebViewGesture(event)
+            }
+            if (dy != 0) scroller.scrollBy(0, dy)
+            return true
         }
-        composeScrollBy?.invoke(dy)
+        val consumed = composeScrollBy?.invoke(dy) ?: 0f
+        if (abs(consumed) <= 0.5f) return false
+        if (!handedOffToParent) {
+            handedOffToParent = true
+            cancelWebViewGesture(event)
+        }
+        return true
     }
 
     private fun findViewScroller(): View? {
