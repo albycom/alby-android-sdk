@@ -19,7 +19,9 @@ import kotlin.math.roundToInt
  * still scroll (the document often moves the input into view). A new gesture
  * that starts at the top/bottom of both, or on an empty chat with no document
  * overflow, is passed to the host page. Reaching an edge mid-gesture does not
- * hand off.
+ * hand off. Once a gesture is handed off in a direction, per-frame deltas that
+ * reverse sign (natural deceleration or finger lift-off) are clamped rather
+ * than applied, so the host page cannot appear to scroll backwards mid-drag.
  */
 @SuppressLint("JavascriptInterface")
 internal class NestedWebView(context: Context) : WebView(context) {
@@ -33,6 +35,7 @@ internal class NestedWebView(context: Context) : WebView(context) {
     private var gestureLocked = false
     private var passThisGesture = false
     private var handedOffToParent = false
+    private var handoffDirectionPositive = false
     private var startY = 0f
     private var lastRawY = 0f
     var composeScrollBy: ((Int) -> Float)? = null
@@ -68,11 +71,21 @@ internal class NestedWebView(context: Context) : WebView(context) {
                 } else {
                     if (!gestureLocked && abs(event.y - startY) > touchSlop) {
                         gestureLocked = true
-                        passThisGesture = shouldPassToParent(startY - event.y)
+                        val overallDy = startY - event.y
+                        passThisGesture = shouldPassToParent(overallDy)
+                        handoffDirectionPositive = overallDy > 0
                     }
-                    if (gestureLocked && passThisGesture && handOffToParent(dy.roundToInt(), event)) {
-                        requestParentsDisallowIntercept(true)
-                        return true
+                    if (gestureLocked && passThisGesture) {
+                        // Once a gesture is locked into a direction, a single frame's raw
+                        // delta can still momentarily reverse sign (natural deceleration or
+                        // finger lift-off), which would otherwise scroll the parent backwards
+                        // mid-gesture. Clamp any such frame to zero instead of reversing it.
+                        val rawDy = dy.roundToInt()
+                        val clampedDy = if (rawDy != 0 && (rawDy > 0) != handoffDirectionPositive) 0 else rawDy
+                        if (handOffToParent(clampedDy, event)) {
+                            requestParentsDisallowIntercept(true)
+                            return true
+                        }
                     }
                     requestParentsDisallowIntercept(true)
                 }
@@ -120,7 +133,7 @@ internal class NestedWebView(context: Context) : WebView(context) {
             return true
         }
         val consumed = composeScrollBy?.invoke(dy) ?: 0f
-        if (abs(consumed) <= 0.5f) return false
+        if (!handedOffToParent && abs(consumed) <= 0.5f) return false
         if (!handedOffToParent) {
             handedOffToParent = true
             cancelWebViewGesture(event)
