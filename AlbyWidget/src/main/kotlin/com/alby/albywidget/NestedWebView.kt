@@ -32,16 +32,18 @@ internal class NestedWebView(context: Context) : WebView(context) {
     // Anything in the page can scroll, known before a touch reaches the page (may be stale).
     @Volatile private var canScrollUp = false
     @Volatile private var canScrollDown = false
-    // What can scroll under the finger, reported on touchstart of the current drag.
-    @Volatile private var touchReported = false
-    @Volatile private var touchCanScrollUp = false
-    @Volatile private var touchCanScrollDown = false
+    // What can scroll under the finger for the current press, from its touchstart.
+    private var touchReported = false
+    private var touchCanScrollUp = false
+    private var touchCanScrollDown = false
 
     private var inGesture = false
     private var claimed = false
     private var decided = false
     private var handingOff = false
     private var hostScrolled = false
+    private var downX = 0f
+    private var downLocalY = 0f
     private var downY = 0f
     private var lastY = 0f
     private var velocity: VelocityTracker? = null
@@ -59,6 +61,8 @@ internal class NestedWebView(context: Context) : WebView(context) {
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
+                downX = event.x
+                downLocalY = event.y
                 downY = event.rawY
                 inGesture = true
                 touchReported = false
@@ -114,12 +118,19 @@ internal class NestedWebView(context: Context) : WebView(context) {
         return super.onTouchEvent(event)
     }
 
-    // The touch report can show the chat scrolls when the state seen on touch down was
-    // stale; claim then, unless the host already took the drag.
-    private fun claimFromTouchReport() {
-        if (!inGesture || claimed || !(touchCanScrollUp || touchCanScrollDown)) return
-        claimed = true
-        requestParentsDisallowIntercept(true)
+    private fun onTouchReport(x: Float, y: Float, up: Boolean, down: Boolean) {
+        // A late report from an earlier press does not match where this one started.
+        val slop = viewConfig.scaledTouchSlop
+        if (!inGesture || abs(x - downX) > slop || abs(y - downLocalY) > slop) return
+        touchCanScrollUp = up
+        touchCanScrollDown = down
+        touchReported = true
+        // The state seen on touch down may have been stale; claim now unless the host
+        // already took the drag.
+        if (!claimed && (up || down)) {
+            claimed = true
+            requestParentsDisallowIntercept(true)
+        }
     }
 
     private fun startHandOff(event: MotionEvent) {
@@ -181,15 +192,15 @@ internal class NestedWebView(context: Context) : WebView(context) {
 
     inner class ScrollBridge {
         @JavascriptInterface
-        fun update(scrollUp: Boolean, scrollDown: Boolean, isTouch: Boolean, touchUp: Boolean, touchDown: Boolean) {
+        fun update(scrollUp: Boolean, scrollDown: Boolean) {
             canScrollUp = scrollUp
             canScrollDown = scrollDown
-            if (isTouch) {
-                touchCanScrollUp = touchUp
-                touchCanScrollDown = touchDown
-                touchReported = true
-                post { claimFromTouchReport() }
-            }
+        }
+
+        /** [x] and [y] are where the touch started, in WebView pixels. */
+        @JavascriptInterface
+        fun touch(x: Float, y: Float, scrollUp: Boolean, scrollDown: Boolean) {
+            post { onTouchReport(x, y, scrollUp, scrollDown) }
         }
     }
 
@@ -198,12 +209,14 @@ internal class NestedWebView(context: Context) : WebView(context) {
 
         // Reports whether any scroller (including inside shadow roots) or the
         // document can scroll up/down. Runs on load, on every touch start/end,
-        // and after DOM changes or resizes (so content that becomes scrollable is
-        // known before the next touch). On touchstart it also reports what can
-        // scroll under the finger: scrollers on the touch path, then the document,
-        // which is how the browser chains the scroll.
+        // while an answer streams in, and after DOM changes or resizes, so content
+        // that becomes scrollable is known before the next touch. On touchstart it
+        // also reports what can scroll under the finger: scrollers on the touch
+        // path, then the document, which is how the browser chains the scroll.
+        // Installed once per page; later calls only report.
         const val SCROLL_STATE_JS = """
             (function() {
+              if (window.__albyScrollReport) { window.__albyScrollReport(); return; }
               function check(el, s) {
                 if (el.scrollHeight - el.clientHeight <= 8) return;
                 s.up = s.up || el.scrollTop > 8;
@@ -240,22 +253,25 @@ internal class NestedWebView(context: Context) : WebView(context) {
                 var all = {up: false, down: false};
                 walk(document, all);
                 check(doc, all);
-                var touch = {up: false, down: false};
-                var isTouch = !!(e && e.type === 'touchstart');
-                if (isTouch) {
+                albyNestedScroll.update(all.up, all.down);
+                if (e && e.type === 'touchstart' && e.touches.length === 1) {
+                  var touch = {up: false, down: false};
                   e.composedPath().forEach(function(el) { checkScroller(el, touch); });
                   check(doc, touch);
+                  var t = e.touches[0];
+                  albyNestedScroll.touch(t.clientX * devicePixelRatio, t.clientY * devicePixelRatio,
+                      touch.up, touch.down);
                 }
-                albyNestedScroll.update(all.up, all.down, isTouch, touch.up, touch.down);
               }
-              if (!window.__albyScrollInstalled) {
-                window.__albyScrollInstalled = true;
-                ['touchstart', 'touchend'].forEach(function(type) {
-                  document.addEventListener(type, report, {capture: true, passive: true});
-                });
-                observe(document);
-                window.addEventListener('resize', schedule);
-              }
+              window.__albyScrollReport = function() { report(); };
+              ['touchstart', 'touchend'].forEach(function(type) {
+                document.addEventListener(type, report, {capture: true, passive: true});
+              });
+              ['streaming-in-progress', 'streaming-finished'].forEach(function(type) {
+                document.addEventListener(type, schedule);
+              });
+              window.addEventListener('resize', schedule);
+              observe(document);
               report();
             })();
         """
