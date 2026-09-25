@@ -45,6 +45,7 @@ internal class NestedWebView(context: Context) : WebView(context) {
     private var decided = false
     private var handingOff = false
     private var hostScrolled = false
+    private var released = false
     private var viewScroller: View? = null
     private var downY = 0f
     private var lastY = 0f
@@ -69,6 +70,7 @@ internal class NestedWebView(context: Context) : WebView(context) {
                 inGesture = true
                 decided = false
                 handingOff = false
+                released = false
                 velocity.clear()
                 trackVelocity(event)
                 claimed = canScrollUp || canScrollDown
@@ -94,6 +96,8 @@ internal class NestedWebView(context: Context) : WebView(context) {
                 trackVelocity(event)
                 // The report may land after the last move, so a short drag decides on lift.
                 if (claimed && !decided && abs(event.rawY - downY) > slop) decide(event)
+                // Released on the last move, so the host never intercepted: finish it here.
+                if (released) startHandOff(event)
                 if (handingOff) {
                     followFinger(event, lifted = true)
                     if (handingOff) {
@@ -134,6 +138,7 @@ internal class NestedWebView(context: Context) : WebView(context) {
 
     private fun startHandOff(event: MotionEvent) {
         handingOff = true
+        released = false
         hostScrolled = false
         viewScroller = null
         lastY = downY
@@ -166,6 +171,7 @@ internal class NestedWebView(context: Context) : WebView(context) {
                 // (app bars, pull to refresh). Posted so Compose's AndroidView finishes this
                 // event first; releasing mid-event makes it cancel the WebView and stop
                 // sending it touches.
+                released = true
                 stopHandOff()
                 post { requestParentsDisallowIntercept(false) }
             }
