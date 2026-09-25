@@ -9,13 +9,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollDispatcher
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.viewinterop.AndroidView
 
 @SuppressLint("SetJavaScriptEnabled", "JavascriptInterface")
@@ -35,27 +29,11 @@ fun WebViewScreen(
     modifier: Modifier = Modifier,
 ) {
     val brandId = AlbySDK.brandId ?: throw IllegalStateException("AlbySDK not initialized")
-    val nestedDispatcher = remember { NestedScrollDispatcher() }
-    val nestedConnection = remember { object : NestedScrollConnection {} }
-
-    fun dispatchComposeScroll(dy: Int): Float {
-        if (dy == 0) return 0f
-        val available = Offset(0f, dy.toFloat())
-        val preConsumed = nestedDispatcher.dispatchPreScroll(available, NestedScrollSource.Drag)
-        val remaining = available - preConsumed
-        val unconsumed = if (remaining.y != 0f) {
-            nestedDispatcher.dispatchPostScroll(preConsumed, remaining, NestedScrollSource.Drag)
-        } else {
-            remaining
-        }
-        return available.y - unconsumed.y
-    }
 
     AndroidView(
-        modifier = modifier.nestedScroll(nestedConnection, nestedDispatcher),
+        modifier = modifier,
         factory = { context ->
             NestedWebView(context).apply {
-                composeScrollBy = ::dispatchComposeScroll
                 settings.apply {
                     javaScriptEnabled = true
                     domStorageEnabled = true
@@ -96,7 +74,6 @@ fun WebViewScreen(
             }
         },
         update = { webView ->
-            (webView as NestedWebView).composeScrollBy = ::dispatchComposeScroll
             val widgetUrl = buildWidgetUrl(
                 brandId, productId, widgetId, variantId, component,
                 threadId, testId, testVersion, testDescription

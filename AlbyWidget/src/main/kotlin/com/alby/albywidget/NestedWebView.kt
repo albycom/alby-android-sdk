@@ -3,233 +3,225 @@ package com.alby.widget
 import android.annotation.SuppressLint
 import android.content.Context
 import android.view.MotionEvent
-import android.view.View
+import android.view.VelocityTracker
 import android.view.ViewConfiguration
-import android.view.ViewParent
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
-import android.widget.AbsListView
-import android.widget.ScrollView
-import androidx.core.widget.NestedScrollView
+import androidx.core.view.NestedScrollingChildHelper
+import androidx.core.view.ViewCompat
 import kotlin.math.abs
-import kotlin.math.roundToInt
 
 /**
- * Keep vertical drags on the widget when the chat or the WebView document can
- * still scroll (the document often moves the input into view). A new gesture
- * that starts at the top/bottom of both, or on an empty chat with no document
- * overflow, is passed to the host page. Reaching an edge mid-gesture does not
- * hand off.
+ * The chat scrolls inside a DOM element, which Android cannot see, so the page
+ * reports through JS whether the chat can scroll up or down.
+ *
+ * If the chat cannot scroll, drags are left to the host. Otherwise the widget
+ * claims the drag on touch down (a Compose host sees moves before an embedded
+ * View, so deciding later would race it). Once the direction is known, the chat
+ * keeps the drag if it can scroll that way; if not, the drag is handed to the
+ * host through standard nested scrolling (Compose, NestedScrollView,
+ * CoordinatorLayout), or released so the host intercepts it (RecyclerView,
+ * ScrollView, or a View scroller around a ComposeView).
  */
 @SuppressLint("JavascriptInterface")
 internal class NestedWebView(context: Context) : WebView(context) {
-    private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
+    private val viewConfig = ViewConfiguration.get(context)
+    private val nestedScroll = NestedScrollingChildHelper(this).apply { isNestedScrollingEnabled = true }
+    private val consumed = IntArray(2)
 
-    @Volatile private var hasOverflow = true
-    @Volatile private var canScrollUp = true
-    @Volatile private var canScrollDown = true
-    @Volatile private var jsReported = false
+    // Anything in the page can scroll, known before a touch reaches the page.
+    @Volatile private var canScrollUp = false
+    @Volatile private var canScrollDown = false
+    // What can scroll under the finger, reported on touchstart of the current drag.
+    @Volatile private var touchReported = false
+    @Volatile private var touchCanScrollUp = false
+    @Volatile private var touchCanScrollDown = false
 
-    private var gestureLocked = false
-    private var passThisGesture = false
-    private var handedOffToParent = false
-    private var startY = 0f
-    private var lastRawY = 0f
-    var composeScrollBy: ((Int) -> Float)? = null
+    private var claimed = false
+    private var decided = false
+    private var handingOff = false
+    private var hostScrolled = false
+    private var downY = 0f
+    private var lastY = 0f
+    private var velocity: VelocityTracker? = null
 
     init {
+        // Compose's AndroidView only forwards nested scroll if the View itself has it enabled.
+        isNestedScrollingEnabled = true
         addJavascriptInterface(ScrollBridge(), JS_INTERFACE)
     }
 
     fun installScrollDetection() {
-        hasOverflow = true
-        canScrollUp = true
-        canScrollDown = true
-        jsReported = false
-        evaluateJavascript(SCROLLABLE_JS, null)
+        evaluateJavascript(SCROLL_STATE_JS, null)
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
-                startY = event.y
-                lastRawY = event.rawY
-                gestureLocked = false
-                passThisGesture = false
-                handedOffToParent = false
-                requestParentsDisallowIntercept(true)
+                downY = event.rawY
+                touchReported = false
+                decided = false
+                handingOff = false
+                claimed = canScrollUp || canScrollDown
+                if (claimed) requestParentsDisallowIntercept(true)
             }
 
             MotionEvent.ACTION_MOVE -> {
-                val dy = lastRawY - event.rawY
-                lastRawY = event.rawY
-                if (!jsReported) {
-                    requestParentsDisallowIntercept(true)
-                } else {
-                    if (!gestureLocked && abs(event.y - startY) > touchSlop) {
-                        gestureLocked = true
-                        passThisGesture = shouldPassToParent(startY - event.y)
+                if (claimed && !decided && abs(event.rawY - downY) > viewConfig.scaledTouchSlop) {
+                    decided = true
+                    val fingerUp = event.rawY < downY
+                    val up = if (touchReported) touchCanScrollUp else canScrollUp
+                    val down = if (touchReported) touchCanScrollDown else canScrollDown
+                    if (!(if (fingerUp) down else up)) startHandOff(event)
+                }
+                if (handingOff) {
+                    trackVelocity(event)
+                    // Positive dy scrolls content down (finger up), as in View.scrollBy.
+                    val dy = (lastY - event.rawY).toInt()
+                    lastY -= dy
+                    if (scrollHost(dy)) {
+                        hostScrolled = true
+                    } else if (!hostScrolled) {
+                        // No nested scrolling host took it: let a View host intercept instead.
+                        // Posted so Compose's AndroidView finishes this event first; releasing
+                        // mid-event makes it cancel the WebView and stop sending it touches.
+                        stopHandOff()
+                        post { requestParentsDisallowIntercept(false) }
                     }
-                    if (gestureLocked && passThisGesture && handOffToParent(dy.roundToInt(), event)) {
-                        requestParentsDisallowIntercept(true)
-                        return true
-                    }
-                    requestParentsDisallowIntercept(true)
+                    return true
                 }
             }
 
-            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                requestParentsDisallowIntercept(false)
-                if (handedOffToParent) return true
+            MotionEvent.ACTION_UP -> if (handingOff) {
+                flingHost(event)
+                stopHandOff()
+                return true
+            }
+
+            MotionEvent.ACTION_CANCEL -> if (handingOff) {
+                stopHandOff()
+                return true
             }
         }
         return super.onTouchEvent(event)
     }
 
-    private fun shouldPassToParent(dy: Float): Boolean {
-        if (dy == 0f) return false
-        if (documentCanScroll(dy)) return false
-        return if (dy > 0) !canScrollDown else !canScrollUp
-    }
-
-    private fun documentCanScroll(dy: Float): Boolean {
-        val range = computeVerticalScrollRange()
-        val extent = computeVerticalScrollExtent()
-        val offset = computeVerticalScrollOffset()
-        val maxOffset = range - extent
-        if (maxOffset <= DOCUMENT_SCROLL_SLOP) return false
-        return if (dy > 0) offset < maxOffset - DOCUMENT_SCROLL_SLOP else offset > DOCUMENT_SCROLL_SLOP
-    }
-
-    private fun cancelWebViewGesture(event: MotionEvent) {
-        val cancel = MotionEvent.obtain(event)
-        cancel.action = MotionEvent.ACTION_CANCEL
+    private fun startHandOff(event: MotionEvent) {
+        handingOff = true
+        hostScrolled = false
+        lastY = downY
+        velocity = VelocityTracker.obtain()
+        nestedScroll.startNestedScroll(ViewCompat.SCROLL_AXIS_VERTICAL)
+        // Stop the WebView's own gesture now that the host owns the drag.
+        val cancel = MotionEvent.obtain(event).apply { action = MotionEvent.ACTION_CANCEL }
         super.onTouchEvent(cancel)
         cancel.recycle()
-        evaluateJavascript("window.getSelection&&window.getSelection().removeAllRanges()", null)
     }
 
-    private fun handOffToParent(dy: Int, event: MotionEvent): Boolean {
-        val scroller = findViewScroller()
-        if (scroller != null) {
-            if (!handedOffToParent) {
-                handedOffToParent = true
-                cancelWebViewGesture(event)
-            }
-            if (dy != 0) scroller.scrollBy(0, dy)
-            return true
-        }
-        val consumed = composeScrollBy?.invoke(dy) ?: 0f
-        if (abs(consumed) <= 0.5f) return false
-        if (!handedOffToParent) {
-            handedOffToParent = true
-            cancelWebViewGesture(event)
-        }
-        return true
+    private fun stopHandOff() {
+        handingOff = false
+        nestedScroll.stopNestedScroll()
+        velocity?.recycle()
+        velocity = null
     }
 
-    private fun findViewScroller(): View? {
-        var ancestor = parent
-        while (ancestor != null) {
-            when (ancestor) {
-                is NestedScrollView, is ScrollView, is AbsListView -> return ancestor as View
-                is View -> if (ancestor.javaClass.name.contains("RecyclerView")) return ancestor
-            }
-            ancestor = ancestor.parent
-        }
-        return null
-    }
-
+    // Compose hosts AndroidView in a container that never gets touch dispatch, so its
+    // disallow flag is never reset and stops the request from propagating. Tell every
+    // ancestor directly.
     private fun requestParentsDisallowIntercept(disallow: Boolean) {
-        var ancestor: ViewParent? = parent
+        var ancestor = parent
         while (ancestor != null) {
             ancestor.requestDisallowInterceptTouchEvent(disallow)
             ancestor = ancestor.parent
         }
     }
 
+    /** Returns whether any nested scrolling host consumed part of [dy]. */
+    private fun scrollHost(dy: Int): Boolean {
+        if (dy == 0) return hostScrolled
+        consumed.fill(0)
+        nestedScroll.dispatchNestedPreScroll(0, dy, consumed, null)
+        val preConsumed = consumed[1]
+        consumed.fill(0)
+        nestedScroll.dispatchNestedScroll(0, preConsumed, 0, dy - preConsumed, null, ViewCompat.TYPE_TOUCH, consumed)
+        return preConsumed != 0 || consumed[1] != 0
+    }
+
+    private fun flingHost(event: MotionEvent) {
+        val tracker = velocity ?: return
+        trackVelocity(event)
+        tracker.computeCurrentVelocity(1000, viewConfig.scaledMaximumFlingVelocity.toFloat())
+        val vy = -tracker.yVelocity
+        if (abs(vy) < viewConfig.scaledMinimumFlingVelocity) return
+        if (!nestedScroll.dispatchNestedPreFling(0f, vy)) nestedScroll.dispatchNestedFling(0f, vy, false)
+    }
+
+    // Screen coordinates, since the WebView moves with the host while it scrolls.
+    private fun trackVelocity(event: MotionEvent) {
+        val screenEvent = MotionEvent.obtain(event).apply { setLocation(event.rawX, event.rawY) }
+        velocity?.addMovement(screenEvent)
+        screenEvent.recycle()
+    }
+
     inner class ScrollBridge {
         @JavascriptInterface
-        fun update(hasOverflowScroller: Boolean, scrollUp: Boolean, scrollDown: Boolean) {
-            hasOverflow = hasOverflowScroller
+        fun update(scrollUp: Boolean, scrollDown: Boolean, isTouch: Boolean, touchUp: Boolean, touchDown: Boolean) {
             canScrollUp = scrollUp
             canScrollDown = scrollDown
-            jsReported = true
+            if (isTouch) {
+                touchCanScrollUp = touchUp
+                touchCanScrollDown = touchDown
+                touchReported = true
+            }
         }
     }
 
     private companion object {
         const val JS_INTERFACE = "albyNestedScroll"
-        const val DOCUMENT_SCROLL_SLOP = 8
 
-        const val SCROLLABLE_JS = """
+        // Reports whether any scroller (including inside shadow roots) or the
+        // document can scroll up/down. Runs on load, on every touch start/end,
+        // and while an answer streams in. On touchstart it also reports what can
+        // scroll under the finger: scrollers on the touch path, then the document,
+        // which is how the browser chains the scroll.
+        const val SCROLL_STATE_JS = """
             (function() {
-              function scrollerInfo(el) {
-                if (!el || el.nodeType !== 1) return null;
-                if (el === document.documentElement || el === document.body) return null;
-                var oy;
-                try { oy = getComputedStyle(el).overflowY; } catch (err) { return null; }
-                if (oy !== 'auto' && oy !== 'scroll' && oy !== 'overlay') return null;
-                if (el.scrollHeight <= el.clientHeight + 1) return null;
-                return {
-                  up: el.scrollTop > 1,
-                  down: el.scrollTop < el.scrollHeight - el.clientHeight - 1
-                };
+              function check(el, s) {
+                if (el.scrollHeight - el.clientHeight <= 8) return;
+                s.up = s.up || el.scrollTop > 8;
+                s.down = s.down || el.scrollTop + el.clientHeight < el.scrollHeight - 8;
               }
-              function collect(root) {
-                var has = false, up = false, down = false;
-                if (!root || !root.querySelectorAll) return {has: has, up: up, down: down};
-                var nodes = root.querySelectorAll('*');
-                for (var i = 0; i < nodes.length; i++) {
-                  var info = scrollerInfo(nodes[i]);
-                  if (info) {
-                    has = true;
-                    up = up || info.up;
-                    down = down || info.down;
-                  }
-                  if (nodes[i].shadowRoot) {
-                    var nested = collect(nodes[i].shadowRoot);
-                    has = has || nested.has;
-                    up = up || nested.up;
-                    down = down || nested.down;
-                  }
-                }
-                return {has: has, up: up, down: down};
+              function checkScroller(el, s) {
+                if (el.nodeType === 1 && el !== document.body && el !== document.documentElement &&
+                    /auto|scroll|overlay/.test(getComputedStyle(el).overflowY)) check(el, s);
               }
-              function documentInfo() {
-                var el = document.scrollingElement || document.documentElement;
-                if (!el || el.scrollHeight <= el.clientHeight + 8) return null;
-                return {
-                  up: el.scrollTop > 8,
-                  down: el.scrollTop < el.scrollHeight - el.clientHeight - 8
-                };
+              function walk(root, s) {
+                root.querySelectorAll('*').forEach(function(el) {
+                  checkScroller(el, s);
+                  if (el.shadowRoot) walk(el.shadowRoot, s);
+                });
               }
               function report(e) {
-                if (!window.albyNestedScroll) return;
-                var all = collect(document);
-                var has = all.has, up = all.up, down = all.down;
-                if (e && e.composedPath) {
-                  var path = e.composedPath();
-                  for (var i = 0; i < path.length; i++) {
-                    var info = scrollerInfo(path[i]);
-                    if (info) {
-                      has = true;
-                      up = up || info.up;
-                      down = down || info.down;
-                    }
-                  }
+                var doc = document.scrollingElement || document.documentElement;
+                var all = {up: false, down: false};
+                walk(document, all);
+                check(doc, all);
+                var touch = {up: false, down: false};
+                var isTouch = !!(e && e.type === 'touchstart');
+                if (isTouch) {
+                  e.composedPath().forEach(function(el) { checkScroller(el, touch); });
+                  check(doc, touch);
                 }
-                var doc = documentInfo();
-                if (doc) {
-                  up = up || doc.up;
-                  down = down || doc.down;
-                }
-                window.albyNestedScroll.update(has, up, down);
+                albyNestedScroll.update(all.up, all.down, isTouch, touch.up, touch.down);
               }
               if (!window.__albyScrollInstalled) {
                 window.__albyScrollInstalled = true;
-                document.addEventListener('touchstart', report, {capture: true, passive: true});
-                document.addEventListener('touchmove', report, {capture: true, passive: true});
+                ['touchstart', 'touchend'].forEach(function(type) {
+                  document.addEventListener(type, report, {capture: true, passive: true});
+                });
+                ['streaming-in-progress', 'streaming-finished'].forEach(function(type) {
+                  document.addEventListener(type, function() { requestAnimationFrame(function() { report(); }); });
+                });
               }
               report();
             })();
