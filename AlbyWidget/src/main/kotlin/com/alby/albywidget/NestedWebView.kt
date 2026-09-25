@@ -32,18 +32,14 @@ internal class NestedWebView(context: Context) : WebView(context) {
     // Anything in the page can scroll, known before a touch reaches the page (may be stale).
     @Volatile private var canScrollUp = false
     @Volatile private var canScrollDown = false
-    // What can scroll under the finger for the current press, from its touchstart.
-    private var touchReported = false
-    private var touchCanScrollUp = false
-    private var touchCanScrollDown = false
+    // The current press; its touchstart report says what can scroll under the finger.
+    @Volatile private var press: Press? = null
 
     private var inGesture = false
     private var claimed = false
     private var decided = false
     private var handingOff = false
     private var hostScrolled = false
-    private var downX = 0f
-    private var downLocalY = 0f
     private var downY = 0f
     private var lastY = 0f
     private var velocity: VelocityTracker? = null
@@ -61,11 +57,9 @@ internal class NestedWebView(context: Context) : WebView(context) {
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
-                downX = event.x
-                downLocalY = event.y
+                press = Press(event.x, event.y)
                 downY = event.rawY
                 inGesture = true
-                touchReported = false
                 decided = false
                 handingOff = false
                 claimed = canScrollUp || canScrollDown
@@ -73,11 +67,18 @@ internal class NestedWebView(context: Context) : WebView(context) {
             }
 
             MotionEvent.ACTION_MOVE -> {
-                if (claimed && !decided && abs(event.rawY - downY) > viewConfig.scaledTouchSlop) {
+                // A claimed drag cannot be stolen, so wait for the report of what can
+                // scroll under the finger (or give up on it after moving well past slop).
+                val current = press
+                val moved = abs(event.rawY - downY)
+                val slop = viewConfig.scaledTouchSlop
+                if (claimed && !decided && current != null && moved > slop &&
+                    (current.reported || moved > 3 * slop)
+                ) {
                     decided = true
                     val fingerUp = event.rawY < downY
-                    val up = if (touchReported) touchCanScrollUp else canScrollUp
-                    val down = if (touchReported) touchCanScrollDown else canScrollDown
+                    val up = if (current.reported) current.canScrollUp else canScrollUp
+                    val down = if (current.reported) current.canScrollDown else canScrollDown
                     if (!(if (fingerUp) down else up)) startHandOff(event)
                 }
                 if (handingOff) {
@@ -118,19 +119,12 @@ internal class NestedWebView(context: Context) : WebView(context) {
         return super.onTouchEvent(event)
     }
 
-    private fun onTouchReport(x: Float, y: Float, up: Boolean, down: Boolean) {
-        // A late report from an earlier press does not match where this one started.
-        val slop = viewConfig.scaledTouchSlop
-        if (!inGesture || abs(x - downX) > slop || abs(y - downLocalY) > slop) return
-        touchCanScrollUp = up
-        touchCanScrollDown = down
-        touchReported = true
-        // The state seen on touch down may have been stale; claim now unless the host
-        // already took the drag.
-        if (!claimed && (up || down)) {
-            claimed = true
-            requestParentsDisallowIntercept(true)
-        }
+    // The state seen on touch down may have been stale; claim once the report shows the
+    // chat scrolls under the finger, unless the host already took the drag.
+    private fun claimFromTouchReport(reported: Press) {
+        if (reported !== press || !inGesture || claimed) return
+        claimed = true
+        requestParentsDisallowIntercept(true)
     }
 
     private fun startHandOff(event: MotionEvent) {
@@ -200,8 +194,22 @@ internal class NestedWebView(context: Context) : WebView(context) {
         /** [x] and [y] are where the touch started, in WebView pixels. */
         @JavascriptInterface
         fun touch(x: Float, y: Float, scrollUp: Boolean, scrollDown: Boolean) {
-            post { onTouchReport(x, y, scrollUp, scrollDown) }
+            val current = press ?: return
+            // A late report from an earlier press does not match where this one started.
+            val slop = viewConfig.scaledTouchSlop
+            if (abs(x - current.x) > slop || abs(y - current.y) > slop) return
+            current.canScrollUp = scrollUp
+            current.canScrollDown = scrollDown
+            current.reported = true
+            if (scrollUp || scrollDown) post { claimFromTouchReport(current) }
         }
+    }
+
+    /** Where a press started, in WebView pixels, and what its touchstart reported. */
+    private class Press(val x: Float, val y: Float) {
+        @Volatile var canScrollUp = false
+        @Volatile var canScrollDown = false
+        @Volatile var reported = false
     }
 
     private companion object {
