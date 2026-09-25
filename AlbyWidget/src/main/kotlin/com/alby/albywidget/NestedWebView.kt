@@ -29,7 +29,7 @@ internal class NestedWebView(context: Context) : WebView(context) {
     private val nestedScroll = NestedScrollingChildHelper(this).apply { isNestedScrollingEnabled = true }
     private val consumed = IntArray(2)
 
-    // Anything in the page can scroll, known before a touch reaches the page.
+    // Anything in the page can scroll, known before a touch reaches the page (may be stale).
     @Volatile private var canScrollUp = false
     @Volatile private var canScrollDown = false
     // What can scroll under the finger, reported on touchstart of the current drag.
@@ -37,6 +37,7 @@ internal class NestedWebView(context: Context) : WebView(context) {
     @Volatile private var touchCanScrollUp = false
     @Volatile private var touchCanScrollDown = false
 
+    private var inGesture = false
     private var claimed = false
     private var decided = false
     private var handingOff = false
@@ -59,6 +60,7 @@ internal class NestedWebView(context: Context) : WebView(context) {
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 downY = event.rawY
+                inGesture = true
                 touchReported = false
                 decided = false
                 handingOff = false
@@ -92,18 +94,32 @@ internal class NestedWebView(context: Context) : WebView(context) {
                 }
             }
 
-            MotionEvent.ACTION_UP -> if (handingOff) {
-                flingHost(event)
-                stopHandOff()
-                return true
+            MotionEvent.ACTION_UP -> {
+                inGesture = false
+                if (handingOff) {
+                    flingHost(event)
+                    stopHandOff()
+                    return true
+                }
             }
 
-            MotionEvent.ACTION_CANCEL -> if (handingOff) {
-                stopHandOff()
-                return true
+            MotionEvent.ACTION_CANCEL -> {
+                inGesture = false
+                if (handingOff) {
+                    stopHandOff()
+                    return true
+                }
             }
         }
         return super.onTouchEvent(event)
+    }
+
+    // The touch report can show the chat scrolls when the state seen on touch down was
+    // stale; claim then, unless the host already took the drag.
+    private fun claimFromTouchReport() {
+        if (!inGesture || claimed || !(touchCanScrollUp || touchCanScrollDown)) return
+        claimed = true
+        requestParentsDisallowIntercept(true)
     }
 
     private fun startHandOff(event: MotionEvent) {
@@ -172,6 +188,7 @@ internal class NestedWebView(context: Context) : WebView(context) {
                 touchCanScrollUp = touchUp
                 touchCanScrollDown = touchDown
                 touchReported = true
+                post { claimFromTouchReport() }
             }
         }
     }
@@ -181,7 +198,8 @@ internal class NestedWebView(context: Context) : WebView(context) {
 
         // Reports whether any scroller (including inside shadow roots) or the
         // document can scroll up/down. Runs on load, on every touch start/end,
-        // and while an answer streams in. On touchstart it also reports what can
+        // and after DOM changes or resizes (so content that becomes scrollable is
+        // known before the next touch). On touchstart it also reports what can
         // scroll under the finger: scrollers on the touch path, then the document,
         // which is how the browser chains the scroll.
         const val SCROLL_STATE_JS = """
@@ -195,10 +213,26 @@ internal class NestedWebView(context: Context) : WebView(context) {
                 if (el.nodeType === 1 && el !== document.body && el !== document.documentElement &&
                     /auto|scroll|overlay/.test(getComputedStyle(el).overflowY)) check(el, s);
               }
+              var pending = false;
+              function schedule() {
+                if (pending) return;
+                pending = true;
+                requestAnimationFrame(function() { pending = false; report(); });
+              }
+              var observed = new WeakSet();
+              function observe(root) {
+                if (observed.has(root)) return;
+                observed.add(root);
+                new MutationObserver(schedule).observe(root,
+                    {childList: true, subtree: true, characterData: true, attributes: true});
+              }
               function walk(root, s) {
                 root.querySelectorAll('*').forEach(function(el) {
                   checkScroller(el, s);
-                  if (el.shadowRoot) walk(el.shadowRoot, s);
+                  if (el.shadowRoot) {
+                    observe(el.shadowRoot);
+                    walk(el.shadowRoot, s);
+                  }
                 });
               }
               function report(e) {
@@ -219,9 +253,8 @@ internal class NestedWebView(context: Context) : WebView(context) {
                 ['touchstart', 'touchend'].forEach(function(type) {
                   document.addEventListener(type, report, {capture: true, passive: true});
                 });
-                ['streaming-in-progress', 'streaming-finished'].forEach(function(type) {
-                  document.addEventListener(type, function() { requestAnimationFrame(function() { report(); }); });
-                });
+                observe(document);
+                window.addEventListener('resize', schedule);
               }
               report();
             })();
