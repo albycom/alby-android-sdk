@@ -42,7 +42,7 @@ internal class NestedWebView(context: Context) : WebView(context) {
     private var hostScrolled = false
     private var downY = 0f
     private var lastY = 0f
-    private var velocity: VelocityTracker? = null
+    private val velocity = VelocityTracker.obtain()
 
     init {
         // Compose's AndroidView only forwards nested scroll if the View itself has it enabled.
@@ -55,6 +55,7 @@ internal class NestedWebView(context: Context) : WebView(context) {
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
+        val slop = viewConfig.scaledTouchSlop
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 press = Press(event.x, event.y)
@@ -62,48 +63,37 @@ internal class NestedWebView(context: Context) : WebView(context) {
                 inGesture = true
                 decided = false
                 handingOff = false
+                velocity.clear()
+                trackVelocity(event)
                 claimed = canScrollUp || canScrollDown
                 if (claimed) requestParentsDisallowIntercept(true)
             }
 
             MotionEvent.ACTION_MOVE -> {
+                trackVelocity(event)
                 // A claimed drag cannot be stolen, so wait for the report of what can
                 // scroll under the finger (or give up on it after moving well past slop).
-                val current = press
                 val moved = abs(event.rawY - downY)
-                val slop = viewConfig.scaledTouchSlop
-                if (claimed && !decided && current != null && moved > slop &&
-                    (current.reported || moved > 3 * slop)
-                ) {
-                    decided = true
-                    val fingerUp = event.rawY < downY
-                    val up = if (current.reported) current.canScrollUp else canScrollUp
-                    val down = if (current.reported) current.canScrollDown else canScrollDown
-                    if (!(if (fingerUp) down else up)) startHandOff(event)
+                if (claimed && !decided && moved > slop && (press?.reported == true || moved > 3 * slop)) {
+                    decide(event)
                 }
                 if (handingOff) {
-                    trackVelocity(event)
-                    // Positive dy scrolls content down (finger up), as in View.scrollBy.
-                    val dy = (lastY - event.rawY).toInt()
-                    lastY -= dy
-                    if (scrollHost(dy)) {
-                        hostScrolled = true
-                    } else if (!hostScrolled) {
-                        // No nested scrolling host took it: let a View host intercept instead.
-                        // Posted so Compose's AndroidView finishes this event first; releasing
-                        // mid-event makes it cancel the WebView and stop sending it touches.
-                        stopHandOff()
-                        post { requestParentsDisallowIntercept(false) }
-                    }
+                    followFinger(event)
                     return true
                 }
             }
 
             MotionEvent.ACTION_UP -> {
                 inGesture = false
+                trackVelocity(event)
+                // The report may land after the last move, so a short drag decides on lift.
+                if (claimed && !decided && abs(event.rawY - downY) > slop) decide(event)
                 if (handingOff) {
-                    flingHost(event)
-                    stopHandOff()
+                    followFinger(event)
+                    if (handingOff) {
+                        flingHost()
+                        stopHandOff()
+                    }
                     return true
                 }
             }
@@ -119,6 +109,15 @@ internal class NestedWebView(context: Context) : WebView(context) {
         return super.onTouchEvent(event)
     }
 
+    private fun decide(event: MotionEvent) {
+        decided = true
+        val current = press
+        val fingerUp = event.rawY < downY
+        val up = if (current?.reported == true) current.canScrollUp else canScrollUp
+        val down = if (current?.reported == true) current.canScrollDown else canScrollDown
+        if (!(if (fingerUp) down else up)) startHandOff(event)
+    }
+
     // The state seen on touch down may have been stale; claim once the report shows the
     // chat scrolls under the finger, unless the host already took the drag.
     private fun claimFromTouchReport(reported: Press) {
@@ -131,7 +130,6 @@ internal class NestedWebView(context: Context) : WebView(context) {
         handingOff = true
         hostScrolled = false
         lastY = downY
-        velocity = VelocityTracker.obtain()
         nestedScroll.startNestedScroll(ViewCompat.SCROLL_AXIS_VERTICAL)
         // Stop the WebView's own gesture now that the host owns the drag.
         val cancel = MotionEvent.obtain(event).apply { action = MotionEvent.ACTION_CANCEL }
@@ -142,8 +140,22 @@ internal class NestedWebView(context: Context) : WebView(context) {
     private fun stopHandOff() {
         handingOff = false
         nestedScroll.stopNestedScroll()
-        velocity?.recycle()
-        velocity = null
+    }
+
+    /** Scrolls the host by how far the finger moved since the last event. */
+    private fun followFinger(event: MotionEvent) {
+        // Positive dy scrolls content down (finger up), as in View.scrollBy.
+        val dy = (lastY - event.rawY).toInt()
+        lastY -= dy
+        if (scrollHost(dy)) {
+            hostScrolled = true
+        } else if (!hostScrolled) {
+            // No nested scrolling host took it: let a View host intercept instead.
+            // Posted so Compose's AndroidView finishes this event first; releasing
+            // mid-event makes it cancel the WebView and stop sending it touches.
+            stopHandOff()
+            post { requestParentsDisallowIntercept(false) }
+        }
     }
 
     // Compose hosts AndroidView in a container that never gets touch dispatch, so its
@@ -168,11 +180,9 @@ internal class NestedWebView(context: Context) : WebView(context) {
         return preConsumed != 0 || consumed[1] != 0
     }
 
-    private fun flingHost(event: MotionEvent) {
-        val tracker = velocity ?: return
-        trackVelocity(event)
-        tracker.computeCurrentVelocity(1000, viewConfig.scaledMaximumFlingVelocity.toFloat())
-        val vy = -tracker.yVelocity
+    private fun flingHost() {
+        velocity.computeCurrentVelocity(1000, viewConfig.scaledMaximumFlingVelocity.toFloat())
+        val vy = -velocity.yVelocity
         if (abs(vy) < viewConfig.scaledMinimumFlingVelocity) return
         if (!nestedScroll.dispatchNestedPreFling(0f, vy)) nestedScroll.dispatchNestedFling(0f, vy, false)
     }
@@ -180,7 +190,7 @@ internal class NestedWebView(context: Context) : WebView(context) {
     // Screen coordinates, since the WebView moves with the host while it scrolls.
     private fun trackVelocity(event: MotionEvent) {
         val screenEvent = MotionEvent.obtain(event).apply { setLocation(event.rawX, event.rawY) }
-        velocity?.addMovement(screenEvent)
+        velocity.addMovement(screenEvent)
         screenEvent.recycle()
     }
 
