@@ -6,8 +6,10 @@ import android.view.View
 import android.view.ViewGroup
 import android.webkit.CookieManager
 import android.webkit.WebView
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
@@ -21,6 +23,12 @@ object AlbySDK {
     val brandId: String? get() = _brandId 
     private var isInitialized = false
     private val client = OkHttpClient()
+    // Tracking runs detached from the caller, so an escaping exception would crash the host app.
+    private val trackingScope = CoroutineScope(
+        SupervisorJob() + Dispatchers.IO + CoroutineExceptionHandler { _, throwable ->
+            println("alby Error: ${throwable.message}")
+        }
+    )
     private const val analyticsEndpoint: String =
         "https://app.alby.net/tracking-service/track/widget"
     private const val ALBY_CDN_URL = "https://cdn.alby.com"
@@ -74,7 +82,7 @@ object AlbySDK {
             userId?.let { append("&user_id=$it") }
         }
 
-        CoroutineScope(Dispatchers.IO).launch {
+        trackingScope.launch {
             performRequest(finalUrl)
         }
     }
@@ -103,7 +111,7 @@ object AlbySDK {
             put("event_timestamp", System.currentTimeMillis() / 1000.0)
         }
 
-        CoroutineScope(Dispatchers.IO).launch {
+        trackingScope.launch {
             performRequest(analyticsEndpoint, "POST", payload.toString())
         }
     }
@@ -114,28 +122,32 @@ object AlbySDK {
         return cookieMap["_alby_user"]
     }
 
-    private fun performRequest(url: String, method: String = "GET", requestBody: String? = null) {
-        val requestBuilder = Request.Builder().url(url)
+    internal fun performRequest(url: String, method: String = "GET", requestBody: String? = null) {
+        try {
+            val requestBuilder = Request.Builder().url(url)
 
-        when (method.uppercase()) {
-            "POST" -> {
-                val body = requestBody?.toRequestBody("application/json".toMediaTypeOrNull())
-                    ?: throw IllegalArgumentException("POST requests require a non-null request body")
-                requestBuilder.post(body)
+            when (method.uppercase()) {
+                "POST" -> {
+                    val body = requestBody?.toRequestBody("application/json".toMediaTypeOrNull())
+                        ?: throw IllegalArgumentException("POST requests require a non-null request body")
+                    requestBuilder.post(body)
+                }
+
+                "GET" -> requestBuilder.get()
+                else -> throw IllegalArgumentException("Unsupported HTTP method: $method")
             }
 
-            "GET" -> requestBuilder.get()
-            else -> throw IllegalArgumentException("Unsupported HTTP method: $method")
-        }
+            val request = requestBuilder.build()
 
-        val request = requestBuilder.build()
-
-        client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) {
-                println("alby Error: ${response.code}")
-            } else {
-                println("alby Success: ${response.code}")
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    println("alby Error: ${response.code}")
+                } else {
+                    println("alby Success: ${response.code}")
+                }
             }
+        } catch (e: Exception) {
+            println("alby Error: ${e.message}")
         }
     }
 
